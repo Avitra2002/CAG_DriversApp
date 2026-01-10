@@ -11,7 +11,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import com.roaddefect.driverapp.ui.theme.AppColors
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -30,7 +30,7 @@ fun TripHistoryScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF0F172A))
+            .background(AppColors.Background)
     ) {
         // Header
         Row(
@@ -43,12 +43,12 @@ fun TripHistoryScreen(
                 Icon(
                     imageVector = Icons.Default.ArrowBack,
                     contentDescription = "Back",
-                    tint = Color.White
+                    tint = AppColors.Light
                 )
             }
             Text(
                 text = "Trip History",
-                color = Color.White,
+                color = AppColors.Light,
                 fontSize = 24.sp,
                 fontWeight = FontWeight.Bold
             )
@@ -81,18 +81,18 @@ fun TripHistoryScreen(
                 Icon(
                     imageVector = Icons.Default.History,
                     contentDescription = "No trips",
-                    tint = Color(0xFF475569),
+                    tint = AppColors.MutedStrong,
                     modifier = Modifier.size(64.dp)
                 )
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
                     text = "No trips recorded yet",
-                    color = Color(0xFF94A3B8),
+                    color = AppColors.Muted,
                     fontSize = 16.sp
                 )
                 Text(
                     text = "Start your first recording from the dashboard",
-                    color = Color(0xFF64748B),
+                    color = AppColors.Muted,
                     fontSize = 14.sp
                 )
             }
@@ -116,7 +116,7 @@ fun TripHistoryScreen(
 fun TripCard(trip: Trip) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFF1E293B)),
+        colors = CardDefaults.cardColors(containerColor = AppColors.Surface),
         shape = RoundedCornerShape(16.dp)
     ) {
         Column(modifier = Modifier.padding(20.dp)) {
@@ -128,13 +128,13 @@ fun TripCard(trip: Trip) {
                 Column {
                     Text(
                         text = trip.routeId,
-                        color = Color.White,
+                        color = AppColors.Light,
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Medium
                     )
                     Text(
                         text = "${trip.date} • ${trip.time}",
-                        color = Color(0xFF94A3B8),
+                        color = AppColors.Muted,
                         fontSize = 12.sp
                     )
                 }
@@ -168,7 +168,7 @@ fun TripCard(trip: Trip) {
             }
 
             Spacer(modifier = Modifier.height(12.dp))
-            Divider(color = Color(0xFF334155))
+            Divider(color = AppColors.Divider)
             Spacer(modifier = Modifier.height(12.dp))
 
             Row(
@@ -177,13 +177,13 @@ fun TripCard(trip: Trip) {
             ) {
                 Text(
                     text = "Trip ID: ${trip.id}",
-                    color = Color(0xFF64748B),
+                    color = AppColors.Muted,
                     fontSize = 11.sp
                 )
                 if (trip.uploadStatus == UploadStatus.UPLOADING) {
                     Text(
                         text = "${trip.uploadProgress}%",
-                        color = Color(0xFF3B82F6),
+                        color = AppColors.Secondary,
                         fontSize = 11.sp
                     )
                 }
@@ -207,19 +207,19 @@ fun TripStat(
             Icon(
                 imageVector = icon,
                 contentDescription = label,
-                tint = Color(0xFF94A3B8),
+                tint = AppColors.Muted,
                 modifier = Modifier.size(12.dp)
             )
             Spacer(modifier = Modifier.width(4.dp))
             Text(
                 text = label,
-                color = Color(0xFF94A3B8),
+                color = AppColors.Muted,
                 fontSize = 11.sp
             )
         }
         Text(
             text = value,
-            color = Color.White,
+            color = AppColors.Light,
             fontSize = 13.sp,
             fontWeight = FontWeight.Medium
         )
@@ -229,10 +229,10 @@ fun TripStat(
 @Composable
 fun UploadStatusBadge(status: UploadStatus) {
     val (color, icon, text) = when (status) {
-        UploadStatus.COMPLETED -> Triple(Color(0xFF10B981), Icons.Default.CheckCircle, "Uploaded")
-        UploadStatus.UPLOADING -> Triple(Color(0xFF3B82F6), Icons.Default.CloudUpload, "Uploading")
-        UploadStatus.FAILED -> Triple(Color(0xFFDC2626), Icons.Default.Error, "Failed")
-        UploadStatus.PENDING -> Triple(Color(0xFF64748B), Icons.Default.Upload, "Pending")
+        UploadStatus.COMPLETED -> Triple(AppColors.Success, Icons.Default.CheckCircle, "Uploaded")
+        UploadStatus.UPLOADING -> Triple(AppColors.Secondary, Icons.Default.CloudUpload, "Uploading")
+        UploadStatus.FAILED -> Triple(AppColors.Error, Icons.Default.Error, "Failed")
+        UploadStatus.PENDING -> Triple(AppColors.Background, Icons.Default.Upload, "Pending")
     }
 
     Surface(
@@ -246,13 +246,13 @@ fun UploadStatusBadge(status: UploadStatus) {
             Icon(
                 imageVector = icon,
                 contentDescription = text,
-                tint = Color.White,
+                tint = AppColors.Light,
                 modifier = Modifier.size(12.dp)
             )
             Spacer(modifier = Modifier.width(4.dp))
             Text(
                 text = text,
-                color = Color.White,
+                color = AppColors.Light,
                 fontSize = 11.sp
             )
         }
@@ -263,19 +263,19 @@ fun UploadStatusBadge(status: UploadStatus) {
 fun StatCard(label: String, value: String, modifier: Modifier = Modifier) {
     Card(
         modifier = modifier,
-        colors = CardDefaults.cardColors(containerColor = Color(0xFF1E293B)),
+        colors = CardDefaults.cardColors(containerColor = AppColors.Surface),
         shape = RoundedCornerShape(12.dp)
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
             Text(
                 text = label,
-                color = Color(0xFF94A3B8),
+                color = AppColors.Muted,
                 fontSize = 11.sp
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = value,
-                color = Color.White,
+                color = AppColors.Light,
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold
             )

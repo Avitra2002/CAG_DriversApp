@@ -28,6 +28,7 @@ import androidx.core.content.ContextCompat
 import com.roaddefect.driverapp.AppViewModel
 import com.roaddefect.driverapp.MainActivity
 import com.roaddefect.driverapp.services.RecordingService
+import com.roaddefect.driverapp.ui.theme.AppColors
 import com.roaddefect.driverapp.utils.FileManager
 
 @Composable
@@ -75,7 +76,7 @@ fun RecordingScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF0F172A))
+            .background(AppColors.Background)
     ) {
         Column(
             modifier = Modifier
@@ -98,7 +99,7 @@ fun RecordingScreen(
                 )
 
                 Surface(
-                    color = Color(0xFFDC2626).copy(alpha = alpha),
+                    color = AppColors.Error.copy(alpha = alpha),
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     Row(
@@ -109,12 +110,12 @@ fun RecordingScreen(
                             modifier = Modifier
                                 .size(8.dp)
                                 .clip(CircleShape)
-                                .background(Color.White)
+                                .background(AppColors.Light)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
                             text = "Recording",
-                            color = Color.White,
+                            color = AppColors.Light,
                             fontSize = 12.sp,
                             fontWeight = FontWeight.SemiBold
                         )
@@ -125,13 +126,13 @@ fun RecordingScreen(
 
                 Text(
                     text = "Trip ${trip.id}",
-                    color = Color.White,
+                    color = AppColors.Light,
                     fontSize = 24.sp,
                     fontWeight = FontWeight.Bold
                 )
                 Text(
                     text = trip.routeId,
-                    color = Color(0xFF94A3B8),
+                    color = AppColors.Muted,
                     fontSize = 14.sp
                 )
             }
@@ -143,7 +144,7 @@ fun RecordingScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .aspectRatio(16f / 9f),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFF1E293B)),
+                colors = CardDefaults.cardColors(containerColor = AppColors.Surface),
                 shape = RoundedCornerShape(16.dp)
             ) {
                 Box(modifier = Modifier.fillMaxSize()) {
@@ -161,23 +162,23 @@ fun RecordingScreen(
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Surface(
-                            color = Color.Black.copy(alpha = 0.7f),
+                            color = AppColors.Background.copy(alpha = 0.7f),
                             shape = RoundedCornerShape(8.dp)
                         ) {
                             Text(
                                 text = formatTime(elapsedSeconds),
-                                color = Color.White,
+                                color = AppColors.Light,
                                 fontSize = 14.sp,
                                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
                             )
                         }
                         Surface(
-                            color = Color.Black.copy(alpha = 0.7f),
+                            color = AppColors.Background.copy(alpha = 0.7f),
                             shape = RoundedCornerShape(8.dp)
                         ) {
                             Text(
                                 text = "$currentSpeed km/h",
-                                color = Color.White,
+                                color = AppColors.Light,
                                 fontSize = 14.sp,
                                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
                             )
@@ -189,7 +190,7 @@ fun RecordingScreen(
                         modifier = Modifier
                             .align(Alignment.BottomStart)
                             .padding(16.dp),
-                        color = Color.Black.copy(alpha = 0.7f),
+                        color = AppColors.Background.copy(alpha = 0.7f),
                         shape = RoundedCornerShape(8.dp)
                     ) {
                         Row(
@@ -200,12 +201,12 @@ fun RecordingScreen(
                                 modifier = Modifier
                                     .size(12.dp)
                                     .clip(CircleShape)
-                                    .background(Color(0xFFDC2626))
+                                    .background(AppColors.Error)
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
                                 text = "REC",
-                                color = Color.White,
+                                color = AppColors.Light,
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold
                             )
@@ -234,13 +235,13 @@ fun RecordingScreen(
                     title = "Duration",
                     value = formatTime(elapsedSeconds),
                     icon = Icons.Default.Timer,
-                    iconTint = Color(0xFF3B82F6)
+                    iconTint = AppColors.Secondary
                 )
                 StatCard(
                     title = "Distance Covered",
                     value = "%.2f km".format(distanceKm),
                     icon = Icons.Default.Navigation,
-                    iconTint = Color(0xFF10B981)
+                    iconTint = AppColors.Success
                 )
             }
         }
@@ -254,8 +255,8 @@ fun RecordingScreen(
                     Brush.verticalGradient(
                         colors = listOf(
                             Color.Transparent,
-                            Color(0xFF0F172A),
-                            Color(0xFF0F172A)
+                            AppColors.Background,
+                            AppColors.Background
                         )
                     )
                 )
@@ -278,7 +279,7 @@ fun RecordingScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(64.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFDC2626)),
+                colors = ButtonDefaults.buttonColors(containerColor = AppColors.Error),
                 shape = RoundedCornerShape(16.dp)
             ) {
                 Icon(
@@ -301,7 +302,7 @@ fun RecordingScreen(
 fun SensorCard(name: String, status: Boolean, modifier: Modifier = Modifier) {
     Card(
         modifier = modifier,
-        colors = CardDefaults.cardColors(containerColor = Color(0xFF1E293B)),
+        colors = CardDefaults.cardColors(containerColor = AppColors.Surface),
         shape = RoundedCornerShape(12.dp)
     ) {
         Column(
@@ -313,12 +314,12 @@ fun SensorCard(name: String, status: Boolean, modifier: Modifier = Modifier) {
                     modifier = Modifier
                         .size(8.dp)
                         .clip(CircleShape)
-                        .background(if (status) Color(0xFF10B981) else Color(0xFFDC2626))
+                        .background(if (status) AppColors.Success else AppColors.Error)
                 )
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(
                     text = name,
-                    color = Color(0xFF94A3B8),
+                    color = AppColors.Muted,
                     fontSize = 11.sp
                 )
             }
@@ -326,7 +327,7 @@ fun SensorCard(name: String, status: Boolean, modifier: Modifier = Modifier) {
             Icon(
                 imageVector = if (status) Icons.Default.CheckCircle else Icons.Default.Error,
                 contentDescription = name,
-                tint = if (status) Color(0xFF10B981) else Color(0xFFDC2626),
+                tint = if (status) AppColors.Success else AppColors.Error,
                 modifier = Modifier.size(16.dp)
             )
         }
@@ -342,7 +343,7 @@ fun StatCard(
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFF1E293B)),
+        colors = CardDefaults.cardColors(containerColor = AppColors.Surface),
         shape = RoundedCornerShape(16.dp)
     ) {
         Column(modifier = Modifier.padding(20.dp)) {
@@ -356,14 +357,14 @@ fun StatCard(
                 Spacer(modifier = Modifier.width(12.dp))
                 Text(
                     text = title,
-                    color = Color(0xFFCBD5E1),
+                    color = AppColors.MutedStrong,
                     fontSize = 16.sp
                 )
             }
             Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = value,
-                color = Color.White,
+                color = AppColors.Light,
                 fontSize = 24.sp,
                 fontWeight = FontWeight.Bold
             )

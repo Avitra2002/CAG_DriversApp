@@ -11,7 +11,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import com.roaddefect.driverapp.ui.theme.AppColors
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -29,7 +29,7 @@ fun SystemHealthScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF0F172A))
+            .background(AppColors.Background)
             .verticalScroll(rememberScrollState())
     ) {
         // Header
@@ -43,12 +43,12 @@ fun SystemHealthScreen(
                 Icon(
                     imageVector = Icons.Default.ArrowBack,
                     contentDescription = "Back",
-                    tint = Color.White
+                    tint = AppColors.Light
                 )
             }
             Text(
                 text = "System Health",
-                color = Color.White,
+                color = AppColors.Light,
                 fontSize = 24.sp,
                 fontWeight = FontWeight.Bold
             )
@@ -58,7 +58,7 @@ fun SystemHealthScreen(
             // Overall Status
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFF1E293B)),
+                colors = CardDefaults.cardColors(containerColor = AppColors.Surface),
                 shape = RoundedCornerShape(16.dp)
             ) {
                 Column(modifier = Modifier.padding(20.dp)) {
@@ -69,11 +69,11 @@ fun SystemHealthScreen(
                     ) {
                         Text(
                             text = "Overall System Status",
-                            color = Color(0xFFCBD5E1),
+                            color = AppColors.MutedStrong,
                             fontSize = 16.sp
                         )
                         Surface(
-                            color = if (systemHealthy) Color(0xFF10B981) else Color(0xFFF59E0B),
+                            color = if (systemHealthy) AppColors.Success else AppColors.AccentGold,
                             shape = RoundedCornerShape(8.dp)
                         ) {
                             Row(
@@ -83,13 +83,13 @@ fun SystemHealthScreen(
                                 Icon(
                                     imageVector = if (systemHealthy) Icons.Default.CheckCircle else Icons.Default.Warning,
                                     contentDescription = "Status",
-                                    tint = Color.White,
+                                    tint = AppColors.Light,
                                     modifier = Modifier.size(14.dp)
                                 )
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Text(
                                     text = if (systemHealthy) "Healthy" else "Warning",
-                                    color = Color.White,
+                                    color = AppColors.Light,
                                     fontSize = 12.sp
                                 )
                             }
@@ -101,7 +101,7 @@ fun SystemHealthScreen(
                             "All systems operational and ready for data collection"
                         else
                             "Some systems need attention before starting a trip",
-                        color = Color(0xFF94A3B8),
+                        color = AppColors.Muted,
                         fontSize = 14.sp
                     )
                 }
@@ -112,13 +112,13 @@ fun SystemHealthScreen(
             // Sensors Card
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFF1E293B)),
+                colors = CardDefaults.cardColors(containerColor = AppColors.Surface),
                 shape = RoundedCornerShape(16.dp)
             ) {
                 Column(modifier = Modifier.padding(20.dp)) {
                     Text(
                         text = "Sensors & Devices",
-                        color = Color(0xFFCBD5E1),
+                        color = AppColors.MutedStrong,
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Medium
                     )
@@ -136,7 +136,7 @@ fun SystemHealthScreen(
             // Storage Card
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFF1E293B)),
+                colors = CardDefaults.cardColors(containerColor = AppColors.Surface),
                 shape = RoundedCornerShape(16.dp)
             ) {
                 Column(modifier = Modifier.padding(20.dp)) {
@@ -144,13 +144,13 @@ fun SystemHealthScreen(
                         Icon(
                             imageVector = Icons.Default.Storage,
                             contentDescription = "Storage",
-                            tint = Color(0xFF3B82F6),
+                            tint = AppColors.Secondary,
                             modifier = Modifier.size(20.dp)
                         )
                         Spacer(modifier = Modifier.width(12.dp))
                         Text(
                             text = "Storage",
-                            color = Color(0xFFCBD5E1),
+                            color = AppColors.MutedStrong,
                             fontSize = 16.sp
                         )
                     }
@@ -161,12 +161,12 @@ fun SystemHealthScreen(
                     ) {
                         Text(
                             text = "Available Space",
-                            color = Color(0xFF94A3B8),
+                            color = AppColors.Muted,
                             fontSize = 14.sp
                         )
                         Text(
                             text = "${sensorStatus.storage}%",
-                            color = Color.White,
+                            color = AppColors.Light,
                             fontSize = 14.sp
                         )
                     }
@@ -176,18 +176,18 @@ fun SystemHealthScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(8.dp),
-                        color = Color(0xFF3B82F6),
-                        trackColor = Color(0xFF334155)
+                        color = AppColors.Secondary,
+                        trackColor = AppColors.Background
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
                         text = "~${(sensorStatus.storage * 1.28f).toInt()} GB free",
-                        color = Color(0xFF94A3B8),
+                        color = AppColors.Muted,
                         fontSize = 12.sp
                     )
                     Spacer(modifier = Modifier.height(16.dp))
                     Surface(
-                        color = Color(0xFF334155),
+                        color = AppColors.Background,
                         shape = RoundedCornerShape(8.dp)
                     ) {
                         Column(modifier = Modifier.padding(16.dp)) {
@@ -197,12 +197,12 @@ fun SystemHealthScreen(
                             ) {
                                 Text(
                                     text = "Estimated trips remaining",
-                                    color = Color(0xFF94A3B8),
+                                    color = AppColors.Muted,
                                     fontSize = 13.sp
                                 )
                                 Text(
                                     text = "${sensorStatus.storage / 15}",
-                                    color = Color.White,
+                                    color = AppColors.Light,
                                     fontSize = 13.sp
                                 )
                             }
@@ -213,12 +213,12 @@ fun SystemHealthScreen(
                             ) {
                                 Text(
                                     text = "Auto-cleanup policy",
-                                    color = Color(0xFF94A3B8),
+                                    color = AppColors.Muted,
                                     fontSize = 13.sp
                                 )
                                 Text(
                                     text = "FIFO",
-                                    color = Color.White,
+                                    color = AppColors.Light,
                                     fontSize = 13.sp
                                 )
                             }
@@ -232,7 +232,7 @@ fun SystemHealthScreen(
             // Device Info Card
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFF1E293B)),
+                colors = CardDefaults.cardColors(containerColor = AppColors.Surface),
                 shape = RoundedCornerShape(16.dp)
             ) {
                 Column(modifier = Modifier.padding(20.dp)) {
@@ -240,13 +240,13 @@ fun SystemHealthScreen(
                         Icon(
                             imageVector = Icons.Default.Smartphone,
                             contentDescription = "Device",
-                            tint = Color(0xFFA855F7),
+                            tint = AppColors.Primary,
                             modifier = Modifier.size(20.dp)
                         )
                         Spacer(modifier = Modifier.width(12.dp))
                         Text(
                             text = "Device Information",
-                            color = Color(0xFFCBD5E1),
+                            color = AppColors.MutedStrong,
                             fontSize = 16.sp
                         )
                     }

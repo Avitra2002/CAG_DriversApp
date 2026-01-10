@@ -18,6 +18,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.roaddefect.driverapp.models.SensorStatus
+import com.roaddefect.driverapp.ui.theme.AppColors
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -41,8 +42,8 @@ fun DashboardScreen(
             .background(
                 Brush.verticalGradient(
                     colors = listOf(
-                        Color(0xFF0F172A),
-                        Color(0xFF1E293B)
+                        AppColors.Background,
+                        AppColors.Surface
                     )
                 )
             )
@@ -62,24 +63,24 @@ fun DashboardScreen(
             ) {
                 Text(
                     text = "Road Defect Monitor",
-                    color = Color(0xFF94A3B8),
+                    color = AppColors.Muted,
                     fontSize = 14.sp
                 )
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
                         imageVector = if (isWifiConnected) Icons.Default.Wifi else Icons.Default.WifiOff,
                         contentDescription = "WiFi Status",
-                        tint = if (isWifiConnected) Color(0xFF10B981) else Color(0xFF64748B),
+                        tint = if (isWifiConnected) AppColors.Success else AppColors.Muted,
                         modifier = Modifier.size(20.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Surface(
-                        color = Color(0xFF1E293B),
+                        color = AppColors.Surface,
                         shape = RoundedCornerShape(12.dp)
                     ) {
                         Text(
                             text = if (isWifiConnected) "Hub WiFi" else "Offline",
-                            color = Color.White,
+                            color = AppColors.Light,
                             fontSize = 12.sp,
                             modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
                         )
@@ -92,13 +93,13 @@ fun DashboardScreen(
             // Vehicle Info
             Text(
                 text = "Vehicle $vehicleId",
-                color = Color(0xFFF1F5F9),
+                color = AppColors.Light,
                 fontSize = 24.sp,
                 fontWeight = FontWeight.Bold
             )
             Text(
                 text = currentDate,
-                color = Color(0xFF94A3B8),
+                color = AppColors.Muted,
                 fontSize = 14.sp
             )
 
@@ -107,13 +108,13 @@ fun DashboardScreen(
             // System Status Card
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFF1E293B)),
+                colors = CardDefaults.cardColors(containerColor = AppColors.Surface),
                 shape = RoundedCornerShape(16.dp)
             ) {
                 Column(modifier = Modifier.padding(20.dp)) {
                     Text(
                         text = "System Status",
-                        color = Color(0xFFCBD5E1),
+                        color = AppColors.MutedStrong,
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Medium
                     )
@@ -142,19 +143,19 @@ fun DashboardScreen(
             ) {
                 Card(
                     modifier = Modifier.weight(1f),
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFF1E293B)),
+                    colors = CardDefaults.cardColors(containerColor = AppColors.Surface),
                     shape = RoundedCornerShape(16.dp)
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Text(
                             text = "Pending Uploads",
-                            color = Color(0xFF94A3B8),
+                            color = AppColors.Muted,
                             fontSize = 12.sp
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
                             text = pendingUploads.toString(),
-                            color = Color.White,
+                            color = AppColors.Light,
                             fontSize = 20.sp,
                             fontWeight = FontWeight.Bold
                         )
@@ -162,19 +163,19 @@ fun DashboardScreen(
                 }
                 Card(
                     modifier = Modifier.weight(1f),
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFF1E293B)),
+                    colors = CardDefaults.cardColors(containerColor = AppColors.Surface),
                     shape = RoundedCornerShape(16.dp)
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Text(
                             text = "Route Today",
-                            color = Color(0xFF94A3B8),
+                            color = AppColors.Muted,
                             fontSize = 12.sp
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
                             text = "ROUTE-A12",
-                            color = Color.White,
+                            color = AppColors.Light,
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Bold
                         )
@@ -192,8 +193,8 @@ fun DashboardScreen(
                     Brush.verticalGradient(
                         colors = listOf(
                             Color.Transparent,
-                            Color(0xFF0F172A),
-                            Color(0xFF0F172A)
+                            AppColors.Background,
+                            AppColors.Background
                         )
                     )
                 )
@@ -204,7 +205,7 @@ fun DashboardScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(64.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981)),
+                colors = ButtonDefaults.buttonColors(containerColor = AppColors.Primary),
                 shape = RoundedCornerShape(16.dp)
             ) {
                 Icon(
@@ -233,8 +234,8 @@ fun DashboardScreen(
                         .weight(1f)
                         .height(56.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF1E293B),
-                        contentColor = Color.White
+                        containerColor = AppColors.Surface,
+                        contentColor = AppColors.Light
                     ),
                     shape = RoundedCornerShape(16.dp),
                     contentPadding = PaddingValues(horizontal = 4.dp, vertical = 8.dp)
@@ -263,8 +264,8 @@ fun DashboardScreen(
                         .weight(1f)
                         .height(56.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF1E293B),
-                        contentColor = Color.White
+                        containerColor = AppColors.Surface,
+                        contentColor = AppColors.Light
                     ),
                     shape = RoundedCornerShape(16.dp),
                     contentPadding = PaddingValues(horizontal = 4.dp, vertical = 8.dp)
@@ -294,8 +295,8 @@ fun DashboardScreen(
                             .fillMaxWidth()
                             .height(56.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFF1E293B),
-                            contentColor = Color.White
+                            containerColor = AppColors.Surface,
+                            contentColor = AppColors.Light
                         ),
                         shape = RoundedCornerShape(16.dp),
                         contentPadding = PaddingValues(horizontal = 4.dp, vertical = 8.dp)
@@ -323,12 +324,12 @@ fun DashboardScreen(
                             modifier = Modifier
                                 .align(Alignment.TopEnd)
                                 .offset(x = 8.dp, y = (-8).dp),
-                            color = Color(0xFFDC2626),
+                            color = AppColors.Error,
                             shape = RoundedCornerShape(12.dp)
                         ) {
                             Text(
                                 text = pendingUploads.toString(),
-                                color = Color.White,
+                                color = AppColors.Light,
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold,
                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
@@ -357,20 +358,20 @@ fun SensorStatusRow(
             Icon(
                 imageVector = icon,
                 contentDescription = label,
-                tint = if (status) Color(0xFF10B981) else Color(0xFFDC2626),
+                tint = if (status) AppColors.Success else AppColors.Error,
                 modifier = Modifier.size(20.dp)
             )
             Spacer(modifier = Modifier.width(12.dp))
             Text(
                 text = label,
-                color = Color(0xFFE2E8F0),
+                color = AppColors.MutedStrong,
                 fontSize = 14.sp
             )
         }
         if (value != null) {
             Text(
                 text = value,
-                color = Color.White,
+                color = AppColors.Light,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Medium
             )
@@ -378,7 +379,7 @@ fun SensorStatusRow(
             Icon(
                 imageVector = if (status) Icons.Default.CheckCircle else Icons.Default.Error,
                 contentDescription = if (status) "OK" else "Error",
-                tint = if (status) Color(0xFF10B981) else Color(0xFFDC2626),
+                tint = if (status) AppColors.Success else AppColors.Error,
                 modifier = Modifier.size(20.dp)
             )
         }

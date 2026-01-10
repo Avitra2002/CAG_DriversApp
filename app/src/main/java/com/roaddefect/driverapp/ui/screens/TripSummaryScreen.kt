@@ -28,6 +28,7 @@ import com.roaddefect.driverapp.AppViewModel
 import com.roaddefect.driverapp.MainActivity
 import com.roaddefect.driverapp.models.UploadStatus
 import com.roaddefect.driverapp.services.S3UploadService
+import com.roaddefect.driverapp.ui.theme.AppColors
 import com.roaddefect.driverapp.utils.FileManager
 import kotlinx.coroutines.launch
 
@@ -69,7 +70,7 @@ fun TripSummaryScreen(
                             // All files uploaded
                             if (uploadedFilesCount >= totalFilesToUpload) {
                                 viewModel.updateTrip(trip.copy(uploadStatus = UploadStatus.COMPLETED))
-                                // Keep uploadTriggered = true so button doesn't reappear
+
                                 uploadedFilesCount = 0
                             }
                         }
@@ -125,7 +126,7 @@ fun TripSummaryScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF0F172A))
+            .background(AppColors.Background)
     ) {
         Column(
             modifier = Modifier
@@ -139,13 +140,13 @@ fun TripSummaryScreen(
             Box(
                 modifier = Modifier
                     .size(80.dp)
-                    .background(Color(0xFF10B981), CircleShape),
+                    .background(AppColors.Success, CircleShape),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = Icons.Default.CheckCircle,
                     contentDescription = "Success",
-                    tint = Color.White,
+                    tint = AppColors.Light,
                     modifier = Modifier.size(48.dp)
                 )
             }
@@ -154,7 +155,7 @@ fun TripSummaryScreen(
 
             Text(
                 text = "Journey Complete!",
-                color = Color.White,
+                color = AppColors.Light,
                 fontSize = 28.sp,
                 fontWeight = FontWeight.Bold
             )
@@ -165,9 +166,9 @@ fun TripSummaryScreen(
                     else -> "Ready to upload"
                 },
                 color = when {
-                    trip.uploadStatus == UploadStatus.COMPLETED -> Color(0xFF10B981)
-                    uploadTriggered -> Color(0xFF3B82F6)
-                    else -> Color(0xFF94A3B8)
+                    trip.uploadStatus == UploadStatus.COMPLETED -> AppColors.Success
+                    uploadTriggered -> AppColors.Secondary
+                    else -> AppColors.Muted
                 },
                 fontSize = 14.sp
             )
@@ -177,13 +178,13 @@ fun TripSummaryScreen(
             // Trip Details Card
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFF1E293B)),
+                colors = CardDefaults.cardColors(containerColor = AppColors.Surface),
                 shape = RoundedCornerShape(16.dp)
             ) {
                 Column(modifier = Modifier.padding(20.dp)) {
                     Text(
                         text = "Trip Details",
-                        color = Color(0xFFCBD5E1),
+                        color = AppColors.MutedStrong,
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Medium
                     )
@@ -207,7 +208,7 @@ fun TripSummaryScreen(
             ) {
                 Card(
                     modifier = Modifier.weight(1f),
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFF1E293B)),
+                    colors = CardDefaults.cardColors(containerColor = AppColors.Surface),
                     shape = RoundedCornerShape(16.dp)
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
@@ -215,20 +216,20 @@ fun TripSummaryScreen(
                             Icon(
                                 imageVector = Icons.Default.Timer,
                                 contentDescription = "Duration",
-                                tint = Color(0xFF3B82F6),
+                                tint = AppColors.Secondary,
                                 modifier = Modifier.size(16.dp)
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
                                 text = "Duration",
-                                color = Color(0xFF94A3B8),
+                                color = AppColors.Muted,
                                 fontSize = 12.sp
                             )
                         }
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
                             text = formatDuration(trip.duration),
-                            color = Color.White,
+                            color = AppColors.Light,
                             fontSize = 20.sp,
                             fontWeight = FontWeight.Bold
                         )
@@ -236,7 +237,7 @@ fun TripSummaryScreen(
                 }
                 Card(
                     modifier = Modifier.weight(1f),
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFF1E293B)),
+                    colors = CardDefaults.cardColors(containerColor = AppColors.Surface),
                     shape = RoundedCornerShape(16.dp)
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
@@ -244,20 +245,20 @@ fun TripSummaryScreen(
                             Icon(
                                 imageVector = Icons.Default.Navigation,
                                 contentDescription = "Distance",
-                                tint = Color(0xFF10B981),
+                                tint = AppColors.Success,
                                 modifier = Modifier.size(16.dp)
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
                                 text = "Distance",
-                                color = Color(0xFF94A3B8),
+                                color = AppColors.Muted,
                                 fontSize = 12.sp
                             )
                         }
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
                             text = "%.2f km".format(trip.distance),
-                            color = Color.White,
+                            color = AppColors.Light,
                             fontSize = 20.sp,
                             fontWeight = FontWeight.Bold
                         )
@@ -271,8 +272,8 @@ fun TripSummaryScreen(
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(
-                    containerColor = if (geofenceStatus.isInsideGeofence) Color(0xFF10B981).copy(alpha = 0.1f)
-                    else Color(0xFF1E293B)
+                    containerColor = if (geofenceStatus.isInsideGeofence) AppColors.Success.copy(alpha = 0.12f)
+                    else AppColors.Surface
                 ),
                 shape = RoundedCornerShape(16.dp)
             ) {
@@ -281,21 +282,21 @@ fun TripSummaryScreen(
                         Icon(
                             imageVector = Icons.Default.LocationOn,
                             contentDescription = "Geofence",
-                            tint = if (geofenceStatus.isInsideGeofence) Color(0xFF10B981) else Color(0xFF94A3B8),
+                            tint = if (geofenceStatus.isInsideGeofence) AppColors.Success else AppColors.Muted,
                             modifier = Modifier.size(24.dp)
                         )
                         Spacer(modifier = Modifier.width(12.dp))
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
                                 text = "Geofence Gate",
-                                color = Color.White,
+                                color = AppColors.Light,
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.Medium
                             )
                             geofenceStatus.distanceToCenter?.let { distance ->
                                 Text(
                                     text = "Distance: %.1f m".format(distance),
-                                    color = Color(0xFF94A3B8),
+                                    color = AppColors.Muted,
                                     fontSize = 12.sp
                                 )
                             }
@@ -304,7 +305,7 @@ fun TripSummaryScreen(
                             Icon(
                                 imageVector = Icons.Default.CheckCircle,
                                 contentDescription = "Passed",
-                                tint = Color(0xFF10B981),
+                                tint = AppColors.Success,
                                 modifier = Modifier.size(24.dp)
                             )
                         }
@@ -318,8 +319,8 @@ fun TripSummaryScreen(
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(
-                    containerColor = if (wifiGateStatus.gatePassed) Color(0xFF10B981).copy(alpha = 0.1f)
-                    else Color(0xFF1E293B)
+                    containerColor = if (wifiGateStatus.gatePassed) AppColors.Success.copy(alpha = 0.12f)
+                    else AppColors.Surface
                 ),
                 shape = RoundedCornerShape(16.dp)
             ) {
@@ -328,26 +329,26 @@ fun TripSummaryScreen(
                         Icon(
                             imageVector = Icons.Default.Wifi,
                             contentDescription = "WiFi",
-                            tint = if (wifiGateStatus.gatePassed) Color(0xFF10B981) else Color(0xFF94A3B8),
+                            tint = if (wifiGateStatus.gatePassed) AppColors.Success else AppColors.Muted,
                             modifier = Modifier.size(24.dp)
                         )
                         Spacer(modifier = Modifier.width(12.dp))
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
                                 text = "WiFi Gate",
-                                color = Color.White,
+                                color = AppColors.Light,
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.Medium
                             )
                             Text(
                                 text = "SSID: ${wifiGateStatus.ssid} | ${wifiGateStatus.rssi} dBm",
-                                color = Color(0xFF94A3B8),
+                                color = AppColors.Muted,
                                 fontSize = 12.sp
                             )
                             if (!wifiGateStatus.gatePassed && wifiGateStatus.isOnTargetWifi) {
                                 Text(
                                     text = "Stable: ${formatMs(wifiGateStatus.stableMs)} / 10s",
-                                    color = Color(0xFF94A3B8),
+                                    color = AppColors.Muted,
                                     fontSize = 12.sp
                                 )
                             }
@@ -356,7 +357,7 @@ fun TripSummaryScreen(
                             Icon(
                                 imageVector = Icons.Default.CheckCircle,
                                 contentDescription = "Passed",
-                                tint = Color(0xFF10B981),
+                                tint = AppColors.Success,
                                 modifier = Modifier.size(24.dp)
                             )
                         }
@@ -369,7 +370,7 @@ fun TripSummaryScreen(
                 Spacer(modifier = Modifier.height(24.dp))
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFF3B82F6).copy(alpha = 0.1f)),
+                    colors = CardDefaults.cardColors(containerColor = AppColors.Secondary.copy(alpha = 0.12f)),
                     shape = RoundedCornerShape(16.dp)
                 ) {
                     Row(
@@ -378,21 +379,21 @@ fun TripSummaryScreen(
                     ) {
                         CircularProgressIndicator(
                             modifier = Modifier.size(24.dp),
-                            color = Color(0xFF3B82F6),
+                            color = AppColors.Secondary,
                             strokeWidth = 3.dp
                         )
                         Spacer(modifier = Modifier.width(16.dp))
                         Column {
                             Text(
                                 text = "Uploading files...",
-                                color = Color.White,
+                                color = AppColors.Light,
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.Medium
                             )
                             if (uploadedFilesCount > 0) {
                                 Text(
                                     text = "$uploadedFilesCount of $totalFilesToUpload files completed",
-                                    color = Color(0xFF94A3B8),
+                                    color = AppColors.Muted,
                                     fontSize = 12.sp
                                 )
                             }
@@ -406,7 +407,7 @@ fun TripSummaryScreen(
                 Spacer(modifier = Modifier.height(24.dp))
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFF10B981).copy(alpha = 0.1f)),
+                    colors = CardDefaults.cardColors(containerColor = AppColors.Success.copy(alpha = 0.12f)),
                     shape = RoundedCornerShape(16.dp)
                 ) {
                     Row(
@@ -416,20 +417,20 @@ fun TripSummaryScreen(
                         Icon(
                             imageVector = Icons.Default.CheckCircle,
                             contentDescription = "Success",
-                            tint = Color(0xFF10B981),
+                            tint = AppColors.Success,
                             modifier = Modifier.size(24.dp)
                         )
                         Spacer(modifier = Modifier.width(16.dp))
                         Column {
                             Text(
                                 text = "Upload successful!",
-                                color = Color.White,
+                                color = AppColors.Light,
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.Medium
                             )
                             Text(
                                 text = "All files uploaded to S3",
-                                color = Color(0xFF94A3B8),
+                                color = AppColors.Muted,
                                 fontSize = 12.sp
                             )
                         }
@@ -447,8 +448,8 @@ fun TripSummaryScreen(
                     Brush.verticalGradient(
                         colors = listOf(
                             Color.Transparent,
-                            Color(0xFF0F172A),
-                            Color(0xFF0F172A)
+                            AppColors.Background,
+                            AppColors.Background
                         )
                     )
                 )
@@ -529,7 +530,7 @@ fun TripSummaryScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(64.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981)),
+                    colors = ButtonDefaults.buttonColors(containerColor = AppColors.Primary),
                     shape = RoundedCornerShape(16.dp)
                 ) {
                     Icon(
@@ -558,7 +559,7 @@ fun TripSummaryScreen(
                     .height(64.dp),
                 shape = RoundedCornerShape(16.dp),
                 colors = ButtonDefaults.outlinedButtonColors(
-                    contentColor = Color.White
+                    contentColor = AppColors.Light
                 )
             ) {
                 Icon(
@@ -585,12 +586,12 @@ fun DetailRow(label: String, value: String) {
     ) {
         Text(
             text = label,
-            color = Color(0xFF94A3B8),
+            color = AppColors.Muted,
             fontSize = 14.sp
         )
         Text(
             text = value,
-            color = Color.White,
+            color = AppColors.Light,
             fontSize = 14.sp,
             fontWeight = FontWeight.Medium
         )
