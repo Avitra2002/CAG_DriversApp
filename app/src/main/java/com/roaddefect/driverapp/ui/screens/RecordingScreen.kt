@@ -1,5 +1,7 @@
 package com.roaddefect.driverapp.ui.screens
 
+import android.content.Intent
+import androidx.camera.view.PreviewView
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -16,42 +18,59 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.roaddefect.driverapp.models.SensorStatus
-import com.roaddefect.driverapp.models.Trip
-import kotlinx.coroutines.delay
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.content.ContextCompat
+import com.roaddefect.driverapp.AppViewModel
+import com.roaddefect.driverapp.MainActivity
+import com.roaddefect.driverapp.services.RecordingService
+import com.roaddefect.driverapp.utils.FileManager
 
 @Composable
 fun RecordingScreen(
-    trip: Trip,
-    sensorStatus: SensorStatus,
-    onCompleteJourney: (Trip) -> Unit
+    viewModel: AppViewModel,
+    activity: MainActivity
 ) {
-    var elapsedTime by remember { mutableStateOf(0) }
-    var distance by remember { mutableStateOf(0f) }
-    var currentSpeed by remember { mutableStateOf(0) }
-    var coverage by remember { mutableStateOf(0) }
-    var isRecording by remember { mutableStateOf(true) }
+    val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
 
-    // Animate elapsed time
-    LaunchedEffect(isRecording) {
-        while (isRecording) {
-            delay(1000)
-            elapsedTime++
+    val currentTrip by viewModel.currentTrip.collectAsState()
+    val sensorStatus by viewModel.sensorStatus.collectAsState()
+    val elapsedTime by viewModel.recordingElapsedTime.collectAsState()
+    val distance by viewModel.recordingDistance.collectAsState()
+
+    val trip = currentTrip ?: return
+
+    // Start recording service when screen appears
+    LaunchedEffect(Unit) {
+        val intent = Intent(context, RecordingService::class.java).apply {
+            action = RecordingService.ACTION_START_RECORDING
+            putExtra(RecordingService.EXTRA_TRIP_ID, trip.id)
+        }
+        ContextCompat.startForegroundService(context, intent)
+    }
+
+    // Setup camera preview
+    val previewView = remember { PreviewView(context) }
+
+    LaunchedEffect(previewView) {
+        val cameraManager = viewModel.getCameraManager()
+        cameraManager.setupCamera(lifecycleOwner, previewView) {
+            // Camera ready
+            val videoFile = FileManager.getVideoFile(context, trip.id)
+            cameraManager.startRecording(videoFile) {
+                // Recording started
+            }
         }
     }
 
-    // Simulate distance and speed
-    LaunchedEffect(isRecording) {
-        while (isRecording) {
-            delay(1000)
-            currentSpeed = (30..50).random()
-            distance += currentSpeed / 3600f
-            coverage = minOf(100, coverage + 1)
-        }
-    }
+    val elapsedSeconds = (elapsedTime / 1000).toInt()
+    val distanceKm = distance / 1000.0
+    val currentSpeed = 0 // Could be calculated from GPS data
 
     Box(
         modifier = Modifier
@@ -127,36 +146,12 @@ fun RecordingScreen(
                 colors = CardDefaults.cardColors(containerColor = Color(0xFF1E293B)),
                 shape = RoundedCornerShape(16.dp)
             ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(
-                            Brush.radialGradient(
-                                colors = listOf(
-                                    Color(0xFF334155),
-                                    Color(0xFF1E293B)
-                                )
-                            )
-                        )
-                ) {
-                    // Simulated camera feed
-                    Column(
-                        modifier = Modifier.fillMaxSize(),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
-                    ) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(64.dp),
-                            color = Color(0xFF10B981),
-                            strokeWidth = 4.dp
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Text(
-                            text = "Live Camera Feed",
-                            color = Color(0xFF94A3B8),
-                            fontSize = 14.sp
-                        )
-                    }
+                Box(modifier = Modifier.fillMaxSize()) {
+                    // Real camera preview
+                    AndroidView(
+                        factory = { previewView },
+                        modifier = Modifier.fillMaxSize()
+                    )
 
                     // Overlay badges
                     Row(
@@ -170,7 +165,7 @@ fun RecordingScreen(
                             shape = RoundedCornerShape(8.dp)
                         ) {
                             Text(
-                                text = formatTime(elapsedTime),
+                                text = formatTime(elapsedSeconds),
                                 color = Color.White,
                                 fontSize = 14.sp,
                                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
@@ -237,56 +232,16 @@ fun RecordingScreen(
             Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 StatCard(
                     title = "Duration",
-                    value = formatTime(elapsedTime),
+                    value = formatTime(elapsedSeconds),
                     icon = Icons.Default.Timer,
                     iconTint = Color(0xFF3B82F6)
                 )
                 StatCard(
                     title = "Distance Covered",
-                    value = "%.2f km".format(distance),
+                    value = "%.2f km".format(distanceKm),
                     icon = Icons.Default.Navigation,
                     iconTint = Color(0xFF10B981)
                 )
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFF1E293B)),
-                    shape = RoundedCornerShape(16.dp)
-                ) {
-                    Column(modifier = Modifier.padding(20.dp)) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.padding(bottom = 12.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.LocationOn,
-                                contentDescription = "Coverage",
-                                tint = Color(0xFFA855F7),
-                                modifier = Modifier.size(20.dp)
-                            )
-                            Spacer(modifier = Modifier.width(12.dp))
-                            Text(
-                                text = "Route Coverage",
-                                color = Color(0xFFCBD5E1),
-                                fontSize = 16.sp
-                            )
-                        }
-                        LinearProgressIndicator(
-                            progress = coverage / 100f,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(8.dp)
-                                .clip(RoundedCornerShape(4.dp)),
-                            color = Color(0xFFA855F7),
-                            trackColor = Color(0xFF334155)
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = "$coverage% complete",
-                            color = Color(0xFF94A3B8),
-                            fontSize = 12.sp
-                        )
-                    }
-                }
             }
         }
 
@@ -308,13 +263,17 @@ fun RecordingScreen(
         ) {
             Button(
                 onClick = {
-                    isRecording = false
-                    val completedTrip = trip.copy(
-                        duration = elapsedTime,
-                        distance = distance,
-                        coverage = coverage
-                    )
-                    onCompleteJourney(completedTrip)
+                    // Stop camera recording
+                    viewModel.getCameraManager().stopRecording()
+
+                    // Stop recording service
+                    val intent = Intent(context, RecordingService::class.java).apply {
+                        action = RecordingService.ACTION_STOP_RECORDING
+                    }
+                    context.startService(intent)
+
+                    // Complete journey in ViewModel
+                    viewModel.completeJourney()
                 },
                 modifier = Modifier
                     .fillMaxWidth()

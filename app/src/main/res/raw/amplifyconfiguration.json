@@ -1,0 +1,25 @@
+{
+  "auth": {
+    "plugins": {
+      "awsCognitoAuthPlugin": {
+        "IdentityManager": { "Default": {} },
+        "CredentialsProvider": {
+          "CognitoIdentity": {
+            "Default": {
+              "PoolId": "ap-southeast-1:a451759a-1b02-4014-944d-e6ea99fa7cb7",
+              "Region": "ap-southeast-1"
+            }
+          }
+        }
+      }
+    }
+  },
+  "storage": {
+    "plugins": {
+      "awsS3StoragePlugin": {
+        "bucket": "cagwifis3uploader",
+        "region": "ap-southeast-1"
+      }
+    }
+  }
+}

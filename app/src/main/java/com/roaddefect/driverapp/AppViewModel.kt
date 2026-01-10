@@ -1,17 +1,22 @@
 package com.roaddefect.driverapp
 
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.roaddefect.driverapp.models.*
+import com.roaddefect.driverapp.utils.*
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
 
-class AppViewModel : ViewModel() {
+class AppViewModel(application: Application) : AndroidViewModel(application) {
+    private val context = application.applicationContext
+
     private val _currentView = MutableStateFlow(AppView.DASHBOARD)
     val currentView: StateFlow<AppView> = _currentView.asStateFlow()
 
@@ -26,10 +31,10 @@ class AppViewModel : ViewModel() {
 
     private val _sensorStatus = MutableStateFlow(
         SensorStatus(
-            camera = true,
-            gps = true,
-            imu = true,
-            storage = 78
+            camera = false,
+            gps = false,
+            imu = false,
+            storage = 0
         )
     )
     val sensorStatus: StateFlow<SensorStatus> = _sensorStatus.asStateFlow()
@@ -40,22 +45,74 @@ class AppViewModel : ViewModel() {
     private val _isWifiConnected = MutableStateFlow(false)
     val isWifiConnected: StateFlow<Boolean> = _isWifiConnected.asStateFlow()
 
+    // Sensor managers
+    private val cameraManager = CameraManager(context)
+    private val gpsTracker = GPSTracker(context)
+    private val imuSensorManager = IMUSensorManager(context)
+
+    // WiFi and Geofence managers
+    val wifiGateManager = WifiGateManager(context)
+    val geofenceManager = GeofenceManager(context)
+
+    // Recording service connection
+    private var recordingServiceBinder: com.roaddefect.driverapp.services.RecordingService? = null
+
+    private val _recordingElapsedTime = MutableStateFlow(0L)
+    val recordingElapsedTime: StateFlow<Long> = _recordingElapsedTime.asStateFlow()
+
+    private val _recordingDistance = MutableStateFlow(0.0)
+    val recordingDistance: StateFlow<Double> = _recordingDistance.asStateFlow()
+
+    private val _tripDirectory = MutableStateFlow<File?>(null)
+    val tripDirectory: StateFlow<File?> = _tripDirectory.asStateFlow()
+
     init {
-        // Simulate WiFi connection check
-        simulateWifiConnection()
+        // Check sensor availability periodically
+        updateSensorStatus()
+        startSensorMonitoring()
     }
 
-    private fun simulateWifiConnection() {
+    private fun startSensorMonitoring() {
         viewModelScope.launch {
             while (true) {
-                delay(60000) // Check every minute
-                val now = Calendar.getInstance().get(Calendar.MINUTE)
-                _isWifiConnected.value = now % 5 == 0
+                updateSensorStatus()
+                delay(5000) // Check every 5 seconds
             }
         }
     }
 
-    fun startRecording() {
+    fun updateSensorStatus() {
+        val cameraAvailable = cameraManager.checkCameraAvailability()
+        val gpsAvailable = gpsTracker.checkGPSAvailability()
+        val imuAvailable = imuSensorManager.checkIMUAvailability()
+        val storagePercentage = FileManager.getAvailableStoragePercentage(context)
+
+        _sensorStatus.value = SensorStatus(
+            camera = cameraAvailable,
+            gps = gpsAvailable,
+            imu = imuAvailable,
+            storage = storagePercentage
+        )
+    }
+
+    fun bindRecordingService(service: com.roaddefect.driverapp.services.RecordingService) {
+        recordingServiceBinder = service
+
+        // Monitor recording service status
+        viewModelScope.launch {
+            service.status.collect { status ->
+                _recordingElapsedTime.value = status.elapsedTimeMs
+                _recordingDistance.value = status.distance
+                _isRecording.value = status.isRecording
+            }
+        }
+    }
+
+    fun unbindRecordingService() {
+        recordingServiceBinder = null
+    }
+
+    fun startRecording(tripId: String? = null) {
         _isRecording.value = true
         _currentView.value = AppView.RECORDING
 
@@ -63,8 +120,10 @@ class AppViewModel : ViewModel() {
         val timeFormat = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
         val now = Date()
 
+        val finalTripId = tripId ?: "trip_${SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(now)}"
+
         val newTrip = Trip(
-            id = "TRIP-${System.currentTimeMillis()}",
+            id = finalTripId,
             date = dateFormat.format(now),
             time = timeFormat.format(now),
             duration = 0,
@@ -77,11 +136,26 @@ class AppViewModel : ViewModel() {
         _currentTrip.value = newTrip
     }
 
-    fun completeJourney(completedTrip: Trip) {
+    fun completeJourney() {
+        val trip = _currentTrip.value ?: return
+
+        val elapsedSeconds = (_recordingElapsedTime.value / 1000).toInt()
+        val distanceKm = (_recordingDistance.value / 1000).toFloat()
+
+        val completedTrip = trip.copy(
+            duration = elapsedSeconds,
+            distance = distanceKm,
+            uploadStatus = UploadStatus.PENDING
+        )
+
         _isRecording.value = false
         _trips.value = listOf(completedTrip) + _trips.value
         _currentTrip.value = completedTrip
         _currentView.value = AppView.TRIP_SUMMARY
+    }
+
+    fun setTripDirectory(directory: File) {
+        _tripDirectory.value = directory
     }
 
     fun navigateToView(view: AppView) {
@@ -93,12 +167,20 @@ class AppViewModel : ViewModel() {
 
     fun updateTrip(trip: Trip) {
         _trips.value = _trips.value.map { if (it.id == trip.id) trip else it }
+        // Also update currentTrip if it's the same trip
+        if (_currentTrip.value?.id == trip.id) {
+            _currentTrip.value = trip
+        }
     }
 
-    fun updateSensorStatus(status: SensorStatus) {
-        _sensorStatus.value = status
-    }
+    fun getCameraManager() = cameraManager
 
     val pendingUploads: Int
         get() = _trips.value.count { it.uploadStatus != UploadStatus.COMPLETED }
+
+    override fun onCleared() {
+        super.onCleared()
+        wifiGateManager.stopMonitoring()
+        geofenceManager.stopMonitoring()
+    }
 }

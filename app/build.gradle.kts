@@ -96,6 +96,11 @@ dependencies {
     // Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
 
+    // AWS Amplify for S3 uploads
+    implementation("com.amplifyframework:core:2.16.0")
+    implementation("com.amplifyframework:aws-auth-cognito:2.16.0")
+    implementation("com.amplifyframework:aws-storage-s3:2.16.0")
+
     // Testing
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.1.5")

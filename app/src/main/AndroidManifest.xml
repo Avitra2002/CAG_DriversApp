@@ -25,6 +25,10 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CAMERA" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+
+    <!-- Notifications -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <!-- Sensor access -->
     <uses-permission android:name="android.permission.HIGH_SAMPLING_RATE_SENSORS" />
@@ -33,6 +37,7 @@
     <uses-permission android:name="android.permission.WAKE_LOCK" />
 
     <application
+        android:name=".DriverApplication"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
@@ -64,6 +69,18 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths" />
         </provider>
+
+        <!-- Recording Service -->
+        <service
+            android:name=".services.RecordingService"
+            android:exported="false"
+            android:foregroundServiceType="location|camera" />
+
+        <!-- S3 Upload Service -->
+        <service
+            android:name=".services.S3UploadService"
+            android:exported="false"
+            android:foregroundServiceType="dataSync" />
 
     </application>
 
