@@ -8,3 +8,8 @@ enum class AppView {
     HISTORY,
     UPLOAD_QUEUE
 }
+
+enum class TripSummarySource {
+    FROM_RECORDING,
+    FROM_QUEUE
+}

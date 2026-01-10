@@ -35,7 +35,10 @@ import kotlinx.coroutines.launch
 @Composable
 fun TripSummaryScreen(
     viewModel: AppViewModel,
-    activity: MainActivity
+    activity: MainActivity,
+    sourceView: com.roaddefect.driverapp.models.TripSummarySource,
+    onNavigateToDashboard: () -> Unit,
+    onNavigateToQueue: () -> Unit
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -133,7 +136,7 @@ fun TripSummaryScreen(
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
                 .padding(24.dp)
-                .padding(bottom = 100.dp),
+                .padding(bottom = if (gatesReady && trip.uploadStatus == UploadStatus.PENDING) 180.dp else 100.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             // Success Icon
@@ -268,6 +271,17 @@ fun TripSummaryScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
+            // Upload Prerequisites Header
+            if (trip.uploadStatus == UploadStatus.PENDING) {
+                
+                Text(
+                    text = "Checking: Both gates must pass before uploading",
+                    color = AppColors.Muted,
+                    fontSize = 13.sp
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+            }
+
             // Geofence Gate Status
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -307,6 +321,12 @@ fun TripSummaryScreen(
                                 contentDescription = "Passed",
                                 tint = AppColors.Success,
                                 modifier = Modifier.size(24.dp)
+                            )
+                        } else if (geofenceStatus.distanceToCenter != null) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(20.dp),
+                                color = AppColors.Secondary,
+                                strokeWidth = 2.dp
                             )
                         }
                     }
@@ -359,6 +379,12 @@ fun TripSummaryScreen(
                                 contentDescription = "Passed",
                                 tint = AppColors.Success,
                                 modifier = Modifier.size(24.dp)
+                            )
+                        } else if (wifiGateStatus.isOnTargetWifi) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(20.dp),
+                                color = AppColors.Secondary,
+                                strokeWidth = 2.dp
                             )
                         }
                     }
@@ -547,12 +573,15 @@ fun TripSummaryScreen(
                 }
             }
 
-            // Return to Dashboard button
+            // Return button (text and action depend on source)
             OutlinedButton(
                 onClick = {
                     viewModel.wifiGateManager.stopMonitoring()
                     viewModel.geofenceManager.stopMonitoring()
-                    viewModel.navigateToView(com.roaddefect.driverapp.models.AppView.DASHBOARD)
+                    when (sourceView) {
+                        com.roaddefect.driverapp.models.TripSummarySource.FROM_RECORDING -> onNavigateToDashboard()
+                        com.roaddefect.driverapp.models.TripSummarySource.FROM_QUEUE -> onNavigateToQueue()
+                    }
                 },
                 modifier = Modifier
                     .fillMaxWidth()
@@ -563,13 +592,19 @@ fun TripSummaryScreen(
                 )
             ) {
                 Icon(
-                    imageVector = Icons.Default.Home,
-                    contentDescription = "Home",
+                    imageVector = when (sourceView) {
+                        com.roaddefect.driverapp.models.TripSummarySource.FROM_RECORDING -> Icons.Default.Home
+                        com.roaddefect.driverapp.models.TripSummarySource.FROM_QUEUE -> Icons.Default.ArrowBack
+                    },
+                    contentDescription = "Return",
                     modifier = Modifier.size(24.dp)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "Return to Dashboard",
+                    text = when (sourceView) {
+                        com.roaddefect.driverapp.models.TripSummarySource.FROM_RECORDING -> "Return to Dashboard"
+                        com.roaddefect.driverapp.models.TripSummarySource.FROM_QUEUE -> "Return to Upload Queue"
+                    },
                     fontSize = 18.sp,
                     fontWeight = FontWeight.SemiBold
                 )

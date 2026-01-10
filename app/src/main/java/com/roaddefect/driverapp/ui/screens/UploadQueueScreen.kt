@@ -23,7 +23,8 @@ fun UploadQueueScreen(
     trips: List<Trip>,
     isWifiConnected: Boolean,
     onBack: () -> Unit,
-    onUpdateTrip: (Trip) -> Unit
+    onUpdateTrip: (Trip) -> Unit,
+    onTripClick: (Trip) -> Unit
 ) {
     val pendingTrips = trips.filter { it.uploadStatus == UploadStatus.PENDING }
     val uploadingTrips = trips.filter { it.uploadStatus == UploadStatus.UPLOADING }
@@ -167,7 +168,7 @@ fun UploadQueueScreen(
                     )
                 }
                 items(pendingTrips.withIndex().toList()) { (index, trip) ->
-                    PendingTripCard(trip, index + 1)
+                    PendingTripCard(trip, index + 1, onClick = { onTripClick(trip) })
                 }
             }
 
@@ -184,20 +185,6 @@ fun UploadQueueScreen(
                     FailedTripCard(trip) {
                         onUpdateTrip(trip.copy(uploadStatus = UploadStatus.UPLOADING, uploadProgress = 0))
                     }
-                }
-            }
-
-            // Completed Uploads
-            if (completedTrips.isNotEmpty()) {
-                item {
-                    Text(
-                        text = "Recently Completed",
-                        color = AppColors.Muted,
-                        fontSize = 13.sp
-                    )
-                }
-                items(completedTrips.take(5)) { trip ->
-                    CompletedTripCard(trip)
                 }
             }
 
@@ -337,8 +324,9 @@ fun UploadingTripCard(trip: Trip) {
 }
 
 @Composable
-fun PendingTripCard(trip: Trip, position: Int) {
+fun PendingTripCard(trip: Trip, position: Int, onClick: () -> Unit) {
     Card(
+        onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = AppColors.Surface),
         shape = RoundedCornerShape(16.dp)
@@ -461,51 +449,3 @@ fun FailedTripCard(trip: Trip, onRetry: () -> Unit) {
     }
 }
 
-@Composable
-fun CompletedTripCard(trip: Trip) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = AppColors.Surface),
-        shape = RoundedCornerShape(16.dp)
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(20.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column {
-                Text(
-                    text = trip.routeId,
-                    color = AppColors.Light,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Medium
-                )
-                Text(
-                    text = "${trip.date} • ${trip.time}",
-                    color = AppColors.Muted,
-                    fontSize = 11.sp
-                )
-            }
-            Surface(
-                color = AppColors.Success,
-                shape = RoundedCornerShape(8.dp)
-            ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        Icons.Default.CheckCircle,
-                        contentDescription = "Uploaded",
-                        tint = AppColors.Light,
-                        modifier = Modifier.size(12.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("Uploaded", color = AppColors.Light, fontSize = 11.sp)
-                }
-            }
-        }
-    }
-}

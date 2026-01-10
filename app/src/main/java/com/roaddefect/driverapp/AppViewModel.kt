@@ -45,6 +45,9 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     private val _isWifiConnected = MutableStateFlow(false)
     val isWifiConnected: StateFlow<Boolean> = _isWifiConnected.asStateFlow()
 
+    private val _tripSummarySource = MutableStateFlow(TripSummarySource.FROM_RECORDING)
+    val tripSummarySource: StateFlow<TripSummarySource> = _tripSummarySource.asStateFlow()
+
     // Sensor managers
     private val cameraManager = CameraManager(context)
     private val gpsTracker = GPSTracker(context)
@@ -70,6 +73,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         // Check sensor availability periodically
         updateSensorStatus()
         startSensorMonitoring()
+        startWifiMonitoring()
     }
 
     private fun startSensorMonitoring() {
@@ -77,6 +81,26 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             while (true) {
                 updateSensorStatus()
                 delay(5000) // Check every 5 seconds
+            }
+        }
+    }
+
+    private fun startWifiMonitoring() {
+        viewModelScope.launch {
+
+            while (true) {
+                try {
+                    val wifiManager = context.getSystemService(android.content.Context.WIFI_SERVICE)
+                        as android.net.wifi.WifiManager
+                    val wifiInfo = wifiManager.connectionInfo
+                    val ssid = wifiInfo.ssid?.replace("\"", "") ?: ""
+
+                    // Update isWifiConnected if connected to AndroidWifi
+                    _isWifiConnected.value = (ssid == "AndroidWifi")
+                } catch (e: Exception) {
+                    _isWifiConnected.value = false
+                }
+                delay(2000) // Check every 2 seconds
             }
         }
     }
@@ -151,7 +175,13 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         _isRecording.value = false
         _trips.value = listOf(completedTrip) + _trips.value
         _currentTrip.value = completedTrip
+        _tripSummarySource.value = TripSummarySource.FROM_RECORDING
         _currentView.value = AppView.TRIP_SUMMARY
+    }
+
+    fun setCurrentTrip(trip: Trip) {
+        _currentTrip.value = trip
+        _tripSummarySource.value = TripSummarySource.FROM_QUEUE
     }
 
     fun setTripDirectory(directory: File) {
@@ -162,6 +192,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         _currentView.value = view
         if (view == AppView.DASHBOARD) {
             _currentTrip.value = null
+            _tripSummarySource.value = TripSummarySource.FROM_RECORDING
         }
     }
 

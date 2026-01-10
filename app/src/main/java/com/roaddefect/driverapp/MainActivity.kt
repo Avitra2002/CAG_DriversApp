@@ -96,6 +96,7 @@ fun DriverApp(viewModel: AppViewModel, activity: MainActivity) {
     val sensorStatus by viewModel.sensorStatus.collectAsState()
     val vehicleId by viewModel.vehicleId.collectAsState()
     val isWifiConnected by viewModel.isWifiConnected.collectAsState()
+    val tripSummarySource by viewModel.tripSummarySource.collectAsState()
 
     when (currentView) {
         AppView.DASHBOARD -> DashboardScreen(
@@ -122,7 +123,14 @@ fun DriverApp(viewModel: AppViewModel, activity: MainActivity) {
         AppView.TRIP_SUMMARY -> currentTrip?.let { trip ->
             TripSummaryScreen(
                 viewModel = viewModel,
-                activity = activity
+                activity = activity,
+                sourceView = tripSummarySource,
+                onNavigateToDashboard = {
+                    viewModel.navigateToView(AppView.DASHBOARD)
+                },
+                onNavigateToQueue = {
+                    viewModel.navigateToView(AppView.UPLOAD_QUEUE)
+                }
             )
         }
 
@@ -141,7 +149,11 @@ fun DriverApp(viewModel: AppViewModel, activity: MainActivity) {
             trips = trips,
             isWifiConnected = isWifiConnected,
             onBack = { viewModel.navigateToView(AppView.DASHBOARD) },
-            onUpdateTrip = { trip -> viewModel.updateTrip(trip) }
+            onUpdateTrip = { trip -> viewModel.updateTrip(trip) },
+            onTripClick = { trip ->
+                viewModel.setCurrentTrip(trip)
+                viewModel.navigateToView(AppView.TRIP_SUMMARY)
+            }
         )
     }
 }
