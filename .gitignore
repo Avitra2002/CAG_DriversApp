@@ -79,10 +79,6 @@ lint/tmp/
 # macOS
 .DS_Store
 
-# Amplify configuration (keep the config file but ignore if it contains secrets)
-# Uncomment if you want to ignore amplify config
-# amplifyconfiguration.json
-
 # Local trip data
 app/src/main/res/raw/trips/
 trips/
