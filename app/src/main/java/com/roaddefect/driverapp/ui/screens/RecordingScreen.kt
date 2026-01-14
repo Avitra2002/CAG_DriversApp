@@ -4,6 +4,7 @@ import android.content.Intent
 import androidx.camera.view.PreviewView
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -21,6 +22,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -137,6 +139,12 @@ fun RecordingScreen(
                 )
             }
 
+            // ESP32 Warning Banner - shown when Bluetooth is not connected
+            if (!sensorStatus.bluetooth) {
+                Spacer(modifier = Modifier.height(16.dp))
+                ESP32WarningBanner()
+            }
+
             Spacer(modifier = Modifier.height(24.dp))
 
             // Camera Preview Card
@@ -220,11 +228,12 @@ fun RecordingScreen(
             // Sensor Indicators
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 SensorCard("Camera", sensorStatus.camera, Modifier.weight(1f))
                 SensorCard("GPS", sensorStatus.gps, Modifier.weight(1f))
                 SensorCard("IMU", sensorStatus.imu, Modifier.weight(1f))
+                SensorCard("ESP32", sensorStatus.bluetooth, Modifier.weight(1f))
             }
 
             Spacer(modifier = Modifier.height(24.dp))
@@ -377,4 +386,74 @@ fun formatTime(seconds: Int): String {
     val mins = (seconds % 3600) / 60
     val secs = seconds % 60
     return String.format("%02d:%02d:%02d", hrs, mins, secs)
+}
+
+@Composable
+fun ESP32WarningBanner() {
+    val infiniteTransition = rememberInfiniteTransition(label = "esp32_warning_pulse")
+    val borderAlpha by infiniteTransition.animateFloat(
+        initialValue = 0.5f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(800),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "border_alpha"
+    )
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .border(
+                width = 2.dp,
+                color = AppColors.AccentGold.copy(alpha = borderAlpha),
+                shape = RoundedCornerShape(12.dp)
+            ),
+        colors = CardDefaults.cardColors(
+            containerColor = Color(0xFF3D2800) // Dark orange/amber background
+        ),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Warning icon with pulsing background
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(CircleShape)
+                    .background(AppColors.AccentGold.copy(alpha = 0.2f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.BluetoothDisabled,
+                    contentDescription = "ESP32 Disconnected",
+                    tint = AppColors.AccentGold,
+                    modifier = Modifier.size(28.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.width(16.dp))
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "ESP32 NOT CONNECTED",
+                    color = AppColors.AccentGold,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 0.5.sp
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "External sensor data will not be recorded for this trip",
+                    color = AppColors.AccentGold.copy(alpha = 0.8f),
+                    fontSize = 12.sp,
+                    lineHeight = 16.sp
+                )
+            }
+        }
+    }
 }

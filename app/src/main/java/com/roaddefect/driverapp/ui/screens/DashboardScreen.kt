@@ -125,6 +125,8 @@ fun DashboardScreen(
                     Spacer(modifier = Modifier.height(12.dp))
                     SensorStatusRow("IMU Sensors", sensorStatus.imu, Icons.Default.Sensors)
                     Spacer(modifier = Modifier.height(12.dp))
+                    SensorStatusRow("BLE", sensorStatus.bluetooth, Icons.Default.Bluetooth)
+                    Spacer(modifier = Modifier.height(12.dp))
                     SensorStatusRow(
                         "Storage Available",
                         sensorStatus.storage > 20,

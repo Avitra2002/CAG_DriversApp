@@ -13,6 +13,8 @@ object FileManager {
     private const val GPS_FILE_NAME = "gps_data.csv"
     private const val IMU_FILE_NAME = "imu_data.csv"
     private const val METADATA_FILE_NAME = "metadata.json"
+    private const val ESP32_GPS_FILE_NAME = "esp32_gps.csv"
+    private const val ESP32_IMU_FILE_NAME = "esp32_imu.csv"
 
     fun getTripDirectory(context: Context, tripId: String): File {
         val tripsDir = File(context.getExternalFilesDir(null), TRIP_FOLDER_NAME)
@@ -39,6 +41,16 @@ object FileManager {
     fun getMetadataFile(context: Context, tripId: String): File {
         val tripDir = getTripDirectory(context, tripId)
         return File(tripDir, METADATA_FILE_NAME)
+    }
+
+    fun getESP32GpsFile(context: Context, tripId: String): File {
+        val tripDir = getTripDirectory(context, tripId)
+        return File(tripDir, ESP32_GPS_FILE_NAME)
+    }
+
+    fun getESP32ImuFile(context: Context, tripId: String): File {
+        val tripDir = getTripDirectory(context, tripId)
+        return File(tripDir, ESP32_IMU_FILE_NAME)
     }
 
     fun getAllTrips(context: Context): List<File> {

@@ -36,6 +36,16 @@
     <!-- Wake lock to keep screen on during recording -->
     <uses-permission android:name="android.permission.WAKE_LOCK" />
 
+    <!-- Bluetooth permissions for ESP32 sensor -->
+    <uses-permission android:name="android.permission.BLUETOOTH" />
+    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
+    <uses-permission android:name="android.permission.BLUETOOTH_SCAN" />
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE" />
+
+    <!-- Bluetooth hardware requirement -->
+    <uses-feature android:name="android.hardware.bluetooth_le" android:required="false" />
+
     <application
         android:name=".DriverApplication"
         android:allowBackup="true"
@@ -74,7 +84,13 @@
         <service
             android:name=".services.RecordingService"
             android:exported="false"
-            android:foregroundServiceType="location|camera" />
+            android:foregroundServiceType="location|camera|connectedDevice" />
+
+        <!-- BLE Service for ESP32 connection -->
+        <service
+            android:name=".ble.BleService"
+            android:exported="false"
+            android:foregroundServiceType="connectedDevice" />
 
         <!-- S3 Upload Service -->
         <service

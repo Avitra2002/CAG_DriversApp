@@ -23,7 +23,7 @@ fun SystemHealthScreen(
     vehicleId: String,
     onBack: () -> Unit
 ) {
-    val allSensorsOnline = sensorStatus.camera && sensorStatus.gps && sensorStatus.imu
+    val allSensorsOnline = sensorStatus.camera && sensorStatus.gps && sensorStatus.imu && sensorStatus.bluetooth
     val systemHealthy = sensorStatus.storage > 20 && allSensorsOnline
 
     Column(
@@ -128,6 +128,13 @@ fun SystemHealthScreen(
                     SensorStatusRow("GPS Tracker", sensorStatus.gps, Icons.Default.LocationOn)
                     Spacer(modifier = Modifier.height(12.dp))
                     SensorStatusRow("IMU Sensors", sensorStatus.imu, Icons.Default.Sensors)
+                    Spacer(modifier = Modifier.height(12.dp))
+                    SensorStatusRow(
+                        label = "ESP32 Sensor",
+                        status = sensorStatus.bluetooth,
+                        icon = Icons.Default.Bluetooth,
+                        value = if (sensorStatus.bluetooth) "Connected" else "Not Connected"
+                    )
                 }
             }
 

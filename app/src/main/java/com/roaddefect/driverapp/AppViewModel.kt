@@ -3,8 +3,11 @@ package com.roaddefect.driverapp
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.roaddefect.driverapp.ble.BleConnectionState
+import com.roaddefect.driverapp.ble.BleManager
 import com.roaddefect.driverapp.models.*
 import com.roaddefect.driverapp.utils.*
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -34,6 +37,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             camera = false,
             gps = false,
             imu = false,
+            bluetooth = false,
             storage = 0
         )
     )
@@ -57,6 +61,13 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     val wifiGateManager = WifiGateManager(context)
     val geofenceManager = GeofenceManager(context)
 
+    // BLE Manager for ESP32 connection
+    private val bleManager = BleManager(application)
+    private var bleDataCollectionJob: Job? = null
+
+    private val _bleConnectionState = MutableStateFlow<BleConnectionState>(BleConnectionState.Disconnected)
+    val bleConnectionState: StateFlow<BleConnectionState> = _bleConnectionState.asStateFlow()
+
     // Recording service connection
     private var recordingServiceBinder: com.roaddefect.driverapp.services.RecordingService? = null
 
@@ -74,6 +85,25 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         updateSensorStatus()
         startSensorMonitoring()
         startWifiMonitoring()
+
+        // Initialize BLE for ESP32 connection
+        initializeBle()
+    }
+
+    private fun initializeBle() {
+        bleManager.bind()
+        viewModelScope.launch {
+            delay(500) // Allow service to start
+            bleManager.startConnection()
+        }
+
+        // Monitor BLE connection state
+        viewModelScope.launch {
+            bleManager.connectionState.collect { state ->
+                _bleConnectionState.value = state
+                updateSensorStatus()
+            }
+        }
     }
 
     private fun startSensorMonitoring() {
@@ -110,11 +140,13 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         val gpsAvailable = gpsTracker.checkGPSAvailability()
         val imuAvailable = imuSensorManager.checkIMUAvailability()
         val storagePercentage = FileManager.getAvailableStoragePercentage(context)
+        val bluetoothConnected = _bleConnectionState.value is BleConnectionState.Connected
 
         _sensorStatus.value = SensorStatus(
             camera = cameraAvailable,
             gps = gpsAvailable,
             imu = imuAvailable,
+            bluetooth = bluetoothConnected,
             storage = storagePercentage
         )
     }
@@ -158,10 +190,30 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             uploadStatus = UploadStatus.PENDING
         )
         _currentTrip.value = newTrip
+
+        // Start BLE data collection
+        startBleDataCollection()
+    }
+
+    private fun startBleDataCollection() {
+        bleDataCollectionJob?.cancel()
+        bleDataCollectionJob = viewModelScope.launch {
+            bleManager.incomingData.collect { packet ->
+                recordingServiceBinder?.onBleData(packet)
+            }
+        }
+    }
+
+    private fun stopBleDataCollection() {
+        bleDataCollectionJob?.cancel()
+        bleDataCollectionJob = null
     }
 
     fun completeJourney() {
         val trip = _currentTrip.value ?: return
+
+        // Stop BLE data collection
+        stopBleDataCollection()
 
         val elapsedSeconds = (_recordingElapsedTime.value / 1000).toInt()
         val distanceKm = (_recordingDistance.value / 1000).toFloat()
@@ -211,6 +263,8 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     override fun onCleared() {
         super.onCleared()
+        stopBleDataCollection()
+        bleManager.unbind()
         wifiGateManager.stopMonitoring()
         geofenceManager.stopMonitoring()
     }

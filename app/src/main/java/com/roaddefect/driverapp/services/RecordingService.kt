@@ -13,6 +13,8 @@ import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.roaddefect.driverapp.MainActivity
 import com.roaddefect.driverapp.R
+import com.roaddefect.driverapp.ble.BlePacket
+import com.roaddefect.driverapp.ble.SensorSample
 import com.roaddefect.driverapp.utils.GPSTracker
 import com.roaddefect.driverapp.utils.IMUSensorManager
 import kotlinx.coroutines.CoroutineScope
@@ -25,6 +27,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import java.io.File
+import java.io.FileWriter
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -59,6 +62,9 @@ class RecordingService : Service() {
 
     private var startTimeMs: Long = 0
     private var tripDirectory: File? = null
+
+    // ESP32 sensor data collection
+    private val esp32SensorSamples = mutableListOf<SensorSample>()
 
     inner class RecordingBinder : Binder() {
         fun getService(): RecordingService = this@RecordingService
@@ -136,6 +142,19 @@ class RecordingService : Service() {
         Log.i("RecordingService", "Recording started for trip: $tripId")
     }
 
+    /**
+     * Called by AppViewModel to pass ESP32 BLE packets to the recording service.
+     * Packets are parsed and stored for later CSV export.
+     */
+    fun onBleData(packet: BlePacket) {
+        if (!_status.value.isRecording) return
+
+        val samples = SensorSample.parseSamples(packet.data)
+        synchronized(esp32SensorSamples) {
+            esp32SensorSamples.addAll(samples)
+        }
+    }
+
     fun stopRecording(): File? {
         if (!_status.value.isRecording) {
             Log.w("RecordingService", "Not currently recording")
@@ -148,6 +167,9 @@ class RecordingService : Service() {
         gpsTracker.stopTracking()
         imuSensorManager.stopRecording()
 
+        // Save ESP32 data if any was collected
+        saveESP32Data()
+
         _status.value = _status.value.copy(isRecording = false)
 
         updateNotif("Recording completed")
@@ -157,6 +179,49 @@ class RecordingService : Service() {
         Log.i("RecordingService", "Recording stopped")
 
         return tripDirectory
+    }
+
+    private fun saveESP32Data() {
+        val tripDir = tripDirectory ?: return
+        val samples: List<SensorSample>
+        synchronized(esp32SensorSamples) {
+            if (esp32SensorSamples.isEmpty()) {
+                Log.i("RecordingService", "No ESP32 data to save")
+                return
+            }
+            samples = esp32SensorSamples.toList()
+            esp32SensorSamples.clear()
+        }
+
+        // Save ESP32 GPS data
+        try {
+            val esp32GpsFile = File(tripDir, "esp32_gps.csv")
+            FileWriter(esp32GpsFile).use { writer ->
+                writer.write("timestamp,latitude,longitude,altitude\n")
+                samples.forEach { sample ->
+                    if (sample.hasValidGnss()) {
+                        writer.write("${sample.timestampMs},${sample.latitude},${sample.longitude},${sample.altitude}\n")
+                    }
+                }
+            }
+            Log.i("RecordingService", "ESP32 GPS data saved: ${esp32GpsFile.absolutePath}")
+        } catch (e: Exception) {
+            Log.e("RecordingService", "Failed to save ESP32 GPS data", e)
+        }
+
+        // Save ESP32 IMU data
+        try {
+            val esp32ImuFile = File(tripDir, "esp32_imu.csv")
+            FileWriter(esp32ImuFile).use { writer ->
+                writer.write("timestamp,ax,ay,az,gx,gy,gz\n")
+                samples.forEach { sample ->
+                    writer.write("${sample.timestampMs},${sample.ax},${sample.ay},${sample.az},${sample.gx},${sample.gy},${sample.gz}\n")
+                }
+            }
+            Log.i("RecordingService", "ESP32 IMU data saved: ${esp32ImuFile.absolutePath}")
+        } catch (e: Exception) {
+            Log.e("RecordingService", "Failed to save ESP32 IMU data", e)
+        }
     }
 
     fun getTripDirectory(): File? = tripDirectory
