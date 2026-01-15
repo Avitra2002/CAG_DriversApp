@@ -28,9 +28,11 @@ import com.roaddefect.driverapp.AppViewModel
 import com.roaddefect.driverapp.MainActivity
 import com.roaddefect.driverapp.models.UploadStatus
 import com.roaddefect.driverapp.services.S3UploadService
+import com.roaddefect.driverapp.services.TripApiService
 import com.roaddefect.driverapp.ui.theme.AppColors
 import com.roaddefect.driverapp.utils.FileManager
 import kotlinx.coroutines.launch
+import android.os.Build as AndroidBuild
 
 @Composable
 fun TripSummaryScreen(
@@ -72,6 +74,43 @@ fun TripSummaryScreen(
 
                             // All files uploaded
                             if (uploadedFilesCount >= totalFilesToUpload) {
+                                android.util.Log.i("TripSummaryScreen", "All files uploaded! Calling POST /trips/complete API...")
+
+                                // Step 3: Call POST /trips/{trip_id}/complete API
+                                scope.launch {
+                                    val apiService = TripApiService()
+
+                                    // Get file metadata for API call
+                                    val ctx = context ?: return@launch
+                                    val videoFile = FileManager.getVideoFile(ctx, trip.id)
+                                    val gpsFile = FileManager.getGPSFile(ctx, trip.id)
+                                    val imuFile = FileManager.getIMUFile(ctx, trip.id)
+
+                                    // Count GPS and IMU points
+                                    val gpsPointCount = gpsFile.readLines().size - 1 // Subtract header
+                                    val imuSampleCount = imuFile.readLines().size - 1 // Subtract header
+
+                                    val completeResult = apiService.completeTrip(
+                                        tripId = trip.id.toIntOrNull() ?: 0,
+                                        videoKey = "trips/${trip.id}/video.mp4",
+                                        gpsKey = "trips/${trip.id}/gps_data.csv",
+                                        imuKey = "trips/${trip.id}/imu_data.csv",
+                                        videoSize = videoFile.length(),
+                                        videoDuration = (trip.duration / 1000).toInt(), // Convert ms to seconds
+                                        gpsPointCount = gpsPointCount.coerceAtLeast(0),
+                                        imuSampleCount = imuSampleCount.coerceAtLeast(0)
+                                    )
+
+                                    if (completeResult.isSuccess) {
+                                        val response = completeResult.getOrNull()
+                                        android.util.Log.i("TripSummaryScreen", "Trip completed via API: ${response?.message}")
+                                        android.util.Log.i("TripSummaryScreen", "Step Functions execution ARN: ${response?.execution_arn}")
+                                    } else {
+                                        android.util.Log.e("TripSummaryScreen", "Failed to complete trip via API: ${completeResult.exceptionOrNull()?.message}")
+                                        // TODO: Show error to user - API call failed
+                                    }
+                                }
+
                                 viewModel.updateTrip(trip.copy(uploadStatus = UploadStatus.COMPLETED))
 
                                 uploadedFilesCount = 0
@@ -488,70 +527,91 @@ fun TripSummaryScreen(
                     onClick = {
                         uploadTriggered = true
 
-                        // Upload all files from trip directory
-                        val videoFile = FileManager.getVideoFile(context, trip.id)
-                        val gpsFile = FileManager.getGPSFile(context, trip.id)
-                        val imuFile = FileManager.getIMUFile(context, trip.id)
+                        // Launch coroutine to call API first, then upload files
+                        scope.launch {
+                            // Step 1: Call POST /trips/start API
+                            android.util.Log.i("TripSummaryScreen", "Calling POST /trips/start API...")
+                            val apiService = TripApiService()
+                            val deviceInfo = "${AndroidBuild.MANUFACTURER} ${AndroidBuild.MODEL}, Android ${AndroidBuild.VERSION.RELEASE}"
+                            val userId = "driver_${trip.vehicleId}" // Use vehicle ID as user identifier
 
-                        android.util.Log.i("TripSummaryScreen", "Upload button clicked!")
-                        android.util.Log.i("TripSummaryScreen", "Video file exists: ${videoFile.exists()}")
-                        android.util.Log.i("TripSummaryScreen", "GPS file exists: ${gpsFile.exists()}")
-                        android.util.Log.i("TripSummaryScreen", "IMU file exists: ${imuFile.exists()}")
+                            val startResult = apiService.startTrip(userId, deviceInfo)
 
-                        // Create empty GPS and IMU files if they don't exist
-                        if (!gpsFile.exists()) {
-                            try {
-                                gpsFile.createNewFile()
-                                gpsFile.writeText("timestamp,latitude,longitude,altitude,speed,accuracy\n")
-                                android.util.Log.i("TripSummaryScreen", "Created empty GPS file")
-                            } catch (e: Exception) {
-                                android.util.Log.e("TripSummaryScreen", "Failed to create GPS file", e)
+                            if (startResult.isFailure) {
+                                android.util.Log.e("TripSummaryScreen", "Failed to start trip via API: ${startResult.exceptionOrNull()?.message}")
+                                // TODO: Show error to user - API call failed, but we'll continue with upload for now
+                            } else {
+                                val apiResponse = startResult.getOrNull()
+                                android.util.Log.i("TripSummaryScreen", "Trip started via API: trip_id=${apiResponse?.trip_id}")
+                                android.util.Log.i("TripSummaryScreen", "Expected S3 keys: ${apiResponse?.expected_keys}")
+                                // TODO: Store apiResponse.trip_id in trip model for later use in complete API call
                             }
-                        }
 
-                        if (!imuFile.exists()) {
-                            try {
-                                imuFile.createNewFile()
-                                imuFile.writeText("timestamp,accel_x,accel_y,accel_z,gyro_x,gyro_y,gyro_z\n")
-                                android.util.Log.i("TripSummaryScreen", "Created empty IMU file")
-                            } catch (e: Exception) {
-                                android.util.Log.e("TripSummaryScreen", "Failed to create IMU file", e)
+                            // Step 2: Upload all files from trip directory
+                            val videoFile = FileManager.getVideoFile(context, trip.id)
+                            val gpsFile = FileManager.getGPSFile(context, trip.id)
+                            val imuFile = FileManager.getIMUFile(context, trip.id)
+
+                            android.util.Log.i("TripSummaryScreen", "Upload button clicked!")
+                            android.util.Log.i("TripSummaryScreen", "Video file exists: ${videoFile.exists()}")
+                            android.util.Log.i("TripSummaryScreen", "GPS file exists: ${gpsFile.exists()}")
+                            android.util.Log.i("TripSummaryScreen", "IMU file exists: ${imuFile.exists()}")
+
+                            // Create empty GPS and IMU files if they don't exist
+                            if (!gpsFile.exists()) {
+                                try {
+                                    gpsFile.createNewFile()
+                                    gpsFile.writeText("timestamp,latitude,longitude,altitude,speed,accuracy\n")
+                                    android.util.Log.i("TripSummaryScreen", "Created empty GPS file")
+                                } catch (e: Exception) {
+                                    android.util.Log.e("TripSummaryScreen", "Failed to create GPS file", e)
+                                }
                             }
-                        }
 
-                        uploadedFilesCount = 0
+                            if (!imuFile.exists()) {
+                                try {
+                                    imuFile.createNewFile()
+                                    imuFile.writeText("timestamp,accel_x,accel_y,accel_z,gyro_x,gyro_y,gyro_z\n")
+                                    android.util.Log.i("TripSummaryScreen", "Created empty IMU file")
+                                } catch (e: Exception) {
+                                    android.util.Log.e("TripSummaryScreen", "Failed to create IMU file", e)
+                                }
+                            }
 
-                        // Upload video
-                        if (videoFile.exists()) {
-                            android.util.Log.i("TripSummaryScreen", "Starting video upload service...")
-                            val videoIntent = Intent(context, S3UploadService::class.java).apply {
-                                putExtra(S3UploadService.EXTRA_FILE_PATH, videoFile.absolutePath)
-                                putExtra(S3UploadService.EXTRA_S3_KEY, "trips/${trip.id}/video.mp4")
+                            uploadedFilesCount = 0
+
+                            // Upload video
+                            if (videoFile.exists()) {
+                                android.util.Log.i("TripSummaryScreen", "Starting video upload service...")
+                                val videoIntent = Intent(context, S3UploadService::class.java).apply {
+                                    putExtra(S3UploadService.EXTRA_FILE_PATH, videoFile.absolutePath)
+                                    putExtra(S3UploadService.EXTRA_S3_KEY, "trips/${trip.id}/video.mp4")
+                                    putExtra(S3UploadService.EXTRA_TRIP_ID, trip.id)
+                                }
+                                ContextCompat.startForegroundService(context, videoIntent)
+                            }
+
+                            // Upload GPS data (always exists now)
+                            android.util.Log.i("TripSummaryScreen", "Starting GPS upload service...")
+                            val gpsIntent = Intent(context, S3UploadService::class.java).apply {
+                                putExtra(S3UploadService.EXTRA_FILE_PATH, gpsFile.absolutePath)
+                                putExtra(S3UploadService.EXTRA_S3_KEY, "trips/${trip.id}/gps_data.csv")
                                 putExtra(S3UploadService.EXTRA_TRIP_ID, trip.id)
                             }
-                            ContextCompat.startForegroundService(context, videoIntent)
-                        }
+                            ContextCompat.startForegroundService(context, gpsIntent)
 
-                        // Upload GPS data (always exists now)
-                        android.util.Log.i("TripSummaryScreen", "Starting GPS upload service...")
-                        val gpsIntent = Intent(context, S3UploadService::class.java).apply {
-                            putExtra(S3UploadService.EXTRA_FILE_PATH, gpsFile.absolutePath)
-                            putExtra(S3UploadService.EXTRA_S3_KEY, "trips/${trip.id}/gps_data.csv")
-                            putExtra(S3UploadService.EXTRA_TRIP_ID, trip.id)
-                        }
-                        ContextCompat.startForegroundService(context, gpsIntent)
+                            // Upload IMU data (always exists now)
+                            android.util.Log.i("TripSummaryScreen", "Starting IMU upload service...")
+                            val imuIntent = Intent(context, S3UploadService::class.java).apply {
+                                putExtra(S3UploadService.EXTRA_FILE_PATH, imuFile.absolutePath)
+                                putExtra(S3UploadService.EXTRA_S3_KEY, "trips/${trip.id}/imu_data.csv")
+                                putExtra(S3UploadService.EXTRA_TRIP_ID, trip.id)
+                            }
+                            ContextCompat.startForegroundService(context, imuIntent)
 
-                        // Upload IMU data (always exists now)
-                        android.util.Log.i("TripSummaryScreen", "Starting IMU upload service...")
-                        val imuIntent = Intent(context, S3UploadService::class.java).apply {
-                            putExtra(S3UploadService.EXTRA_FILE_PATH, imuFile.absolutePath)
-                            putExtra(S3UploadService.EXTRA_S3_KEY, "trips/${trip.id}/imu_data.csv")
-                            putExtra(S3UploadService.EXTRA_TRIP_ID, trip.id)
+                            // Update trip status
+                            viewModel.updateTrip(trip.copy(uploadStatus = UploadStatus.UPLOADING))
                         }
-                        ContextCompat.startForegroundService(context, imuIntent)
-
-                        // Update trip status
-                        viewModel.updateTrip(trip.copy(uploadStatus = UploadStatus.UPLOADING))
                     },
                     modifier = Modifier
                         .fillMaxWidth()
