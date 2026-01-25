@@ -119,7 +119,7 @@ fun DashboardScreen(
                         fontWeight = FontWeight.Medium
                     )
                     Spacer(modifier = Modifier.height(16.dp))
-                    SensorStatusRow("Front Camera", sensorStatus.camera, Icons.Default.Camera)
+                    SensorStatusRow("Back Camera", sensorStatus.camera, Icons.Default.Camera)
                     Spacer(modifier = Modifier.height(12.dp))
                     SensorStatusRow("GPS Tracker", sensorStatus.gps, Icons.Default.LocationOn)
                     Spacer(modifier = Modifier.height(12.dp))

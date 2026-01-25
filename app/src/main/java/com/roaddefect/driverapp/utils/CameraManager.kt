@@ -79,7 +79,7 @@ class CameraManager(private val context: Context) {
 
                 videoCapture = VideoCapture.withOutput(recorder)
 
-                val cameraSelector = CameraSelector.DEFAULT_FRONT_CAMERA
+                val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
 
                 cameraProvider?.unbindAll()
                 cameraProvider?.bindToLifecycle(
