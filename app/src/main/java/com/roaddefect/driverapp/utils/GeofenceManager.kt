@@ -27,8 +27,8 @@ data class GeofenceStatus(
 
 class GeofenceManager(
     private val context: Context,
-    private val centerLat: Double = 1.341,
-    private val centerLng: Double = 103.964331,
+    private val centerLat: Double = 1.340197,
+    private val centerLng: Double = 103.962004,
     private val radiusMeters: Double = 150.0
 ) {
     private val fusedClient: FusedLocationProviderClient =

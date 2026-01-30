@@ -69,6 +69,8 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     val bleConnectionState: StateFlow<BleConnectionState> = _bleConnectionState.asStateFlow()
 
     // Recording service connection
+    // TODO: clarify whether the recording service needed to be created in the MainActivity. Why not
+    // just in this viewmodel?
     private var recordingServiceBinder: com.roaddefect.driverapp.services.RecordingService? = null
 
     private val _recordingElapsedTime = MutableStateFlow(0L)
@@ -256,7 +258,8 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun getCameraManager() = cameraManager
+    fun getRecordingService(): com.roaddefect.driverapp.services.RecordingService? =
+            recordingServiceBinder
 
     val pendingUploads: Int
         get() = _trips.value.count { it.uploadStatus != UploadStatus.COMPLETED }

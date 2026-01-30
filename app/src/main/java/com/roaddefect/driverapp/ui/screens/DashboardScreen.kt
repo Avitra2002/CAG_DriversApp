@@ -15,13 +15,13 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.roaddefect.driverapp.models.SensorStatus
 import com.roaddefect.driverapp.ui.theme.AppColors
 import java.text.SimpleDateFormat
 import java.util.*
-
 
 @Composable
 fun DashboardScreen(

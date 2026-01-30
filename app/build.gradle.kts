@@ -74,6 +74,7 @@ dependencies {
     // ViewModel
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0")
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.7.0")
+    implementation("androidx.lifecycle:lifecycle-service:2.7.0")
 
     // Location Services
     implementation("com.google.android.gms:play-services-location:21.1.0")
