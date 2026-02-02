@@ -48,6 +48,7 @@ class RecordingService : LifecycleService() {
 
     companion object {
         const val ACTION_START_RECORDING = "action_start_recording"
+        const val ACTION_START_CAMERA_RECORDING = "action_start_camera_recording"
         const val ACTION_STOP_RECORDING = "action_stop_recording"
         const val EXTRA_TRIP_ID = "extra_trip_id"
 
@@ -94,6 +95,9 @@ class RecordingService : LifecycleService() {
                 val tripId = intent.getStringExtra(EXTRA_TRIP_ID) ?: generateTripId()
                 startRecording(tripId)
             }
+            ACTION_START_CAMERA_RECORDING -> {
+                startCameraRecording()
+            }
             ACTION_STOP_RECORDING -> {
                 stopRecording()
             }
@@ -117,7 +121,7 @@ class RecordingService : LifecycleService() {
             return
         }
 
-        startForeground(NOTIF_ID, buildNotif("Recording trip..."))
+        startForeground(NOTIF_ID, buildNotif("Preparing recording..."))
 
         acquireWakeLock()
 
@@ -136,7 +140,7 @@ class RecordingService : LifecycleService() {
         val imuFile = File(tripDirectory, "imu_data.csv")
         imuSensorManager.startRecording(imuFile)
 
-        // Update status first so tripId is available
+        // Update status - but camera recording NOT started yet
         _status.value =
                 RecordingStatus(
                         isRecording = true,
@@ -145,16 +149,6 @@ class RecordingService : LifecycleService() {
                         distance = 0.0,
                         isCameraRecording = false
                 )
-
-        // Setup camera and start recording
-        cameraManager.setupCamera(this) {
-            // Camera ready, start recording
-            val videoFile = FileManager.getVideoFile(this, tripId)
-            cameraManager.startRecording(videoFile) {
-                _status.value = _status.value.copy(isCameraRecording = true)
-                Log.i("RecordingService", "Camera recording started")
-            }
-        }
 
         // Start timer for elapsed time
         timerJob =
@@ -173,7 +167,35 @@ class RecordingService : LifecycleService() {
                     }
                 }
 
-        Log.i("RecordingService", "Recording started for trip: $tripId")
+        Log.i("RecordingService", "Recording started for trip: $tripId (camera not started)")
+    }
+
+    /**
+     * Start camera recording after preview has been unbound.
+     * This should be called after the user clicks "Start Recording" in the UI.
+     */
+    fun startCameraRecording() {
+        if (!_status.value.isRecording) {
+            Log.w("RecordingService", "Cannot start camera - not recording")
+            return
+        }
+
+        if (_status.value.isCameraRecording) {
+            Log.w("RecordingService", "Camera already recording")
+            return
+        }
+
+        val tripId = _status.value.tripId
+
+        // Setup camera (video only, no preview) and start recording
+        cameraManager.setupCameraVideoOnly(this) {
+            // Camera ready, start recording
+            val videoFile = FileManager.getVideoFile(this, tripId)
+            cameraManager.startRecording(videoFile) {
+                _status.value = _status.value.copy(isCameraRecording = true)
+                Log.i("RecordingService", "Camera recording started")
+            }
+        }
     }
 
     /**

@@ -1,6 +1,8 @@
 package com.roaddefect.driverapp.ui.screens
 
 import android.content.Intent
+import android.view.ViewGroup
+import androidx.camera.view.PreviewView
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -19,20 +21,20 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import com.roaddefect.driverapp.AppViewModel
 import com.roaddefect.driverapp.MainActivity
 import com.roaddefect.driverapp.services.RecordingService
 import com.roaddefect.driverapp.ui.theme.AppColors
+import java.util.Locale
 
 @Composable
 fun RecordingScreen(viewModel: AppViewModel, activity: MainActivity) {
         val context = LocalContext.current
-        val lifecycleOwner = LocalLifecycleOwner.current
 
         val currentTrip by viewModel.currentTrip.collectAsState()
         val sensorStatus by viewModel.sensorStatus.collectAsState()
@@ -41,7 +43,11 @@ fun RecordingScreen(viewModel: AppViewModel, activity: MainActivity) {
 
         val trip = currentTrip ?: return
 
-        // Start recording service when screen appears
+        // Track whether we're in preview mode or recording mode
+        var isPreviewMode by remember { mutableStateOf(true) }
+        var previewView by remember { mutableStateOf<PreviewView?>(null) }
+
+        // Start recording service when screen appears (but NOT camera recording yet)
         LaunchedEffect(Unit) {
                 val intent =
                         Intent(context, RecordingService::class.java).apply {
@@ -49,6 +55,18 @@ fun RecordingScreen(viewModel: AppViewModel, activity: MainActivity) {
                                 putExtra(RecordingService.EXTRA_TRIP_ID, trip.id)
                         }
                 ContextCompat.startForegroundService(context, intent)
+        }
+
+        // Setup camera preview when preview view is ready
+        LaunchedEffect(previewView, isPreviewMode) {
+                if (isPreviewMode && previewView != null) {
+                        val service = viewModel.getRecordingService()
+                        service?.getCameraManager()?.setupCameraWithPreview(
+                                lifecycleOwner = activity,
+                                previewView = previewView!!,
+                                onCameraReady = {}
+                        )
+                }
         }
 
         val elapsedSeconds = (elapsedTime / 1000).toInt()
@@ -79,7 +97,7 @@ fun RecordingScreen(viewModel: AppViewModel, activity: MainActivity) {
                                         )
 
                                 Surface(
-                                        color = AppColors.Error.copy(alpha = alpha),
+                                        color = if (isPreviewMode) AppColors.Secondary.copy(alpha = 0.8f) else AppColors.Error.copy(alpha = alpha),
                                         shape = RoundedCornerShape(12.dp)
                                 ) {
                                         Row(
@@ -98,7 +116,7 @@ fun RecordingScreen(viewModel: AppViewModel, activity: MainActivity) {
                                                 )
                                                 Spacer(modifier = Modifier.width(8.dp))
                                                 Text(
-                                                        text = "Recording",
+                                                        text = if (isPreviewMode) "Preview" else "Recording",
                                                         color = AppColors.Light,
                                                         fontSize = 12.sp,
                                                         fontWeight = FontWeight.SemiBold
@@ -132,24 +150,42 @@ fun RecordingScreen(viewModel: AppViewModel, activity: MainActivity) {
                                 shape = RoundedCornerShape(16.dp)
                         ) {
                                 Box(modifier = Modifier.fillMaxSize()) {
-                                        // Placeholder for camera preview
-                                        Column(
-                                                modifier = Modifier.fillMaxSize(),
-                                                horizontalAlignment = Alignment.CenterHorizontally,
-                                                verticalArrangement = Arrangement.Center
-                                        ) {
-                                                Icon(
-                                                        imageVector = Icons.Default.Videocam,
-                                                        contentDescription = "Recording",
-                                                        tint = AppColors.Muted,
-                                                        modifier = Modifier.size(64.dp)
+                                        // Show preview or placeholder based on mode
+                                        if (isPreviewMode) {
+                                                // Camera preview
+                                                AndroidView(
+                                                        factory = { ctx ->
+                                                                PreviewView(ctx).apply {
+                                                                        layoutParams = ViewGroup.LayoutParams(
+                                                                                ViewGroup.LayoutParams.MATCH_PARENT,
+                                                                                ViewGroup.LayoutParams.MATCH_PARENT
+                                                                        )
+                                                                        scaleType = PreviewView.ScaleType.FILL_CENTER
+                                                                        previewView = this
+                                                                }
+                                                        },
+                                                        modifier = Modifier.fillMaxSize()
                                                 )
-                                                Spacer(modifier = Modifier.height(8.dp))
-                                                Text(
-                                                        text = "Recording in background",
-                                                        color = AppColors.Muted,
-                                                        fontSize = 14.sp
-                                                )
+                                        } else {
+                                                // Placeholder for when recording in background
+                                                Column(
+                                                        modifier = Modifier.fillMaxSize(),
+                                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                                        verticalArrangement = Arrangement.Center
+                                                ) {
+                                                        Icon(
+                                                                imageVector = Icons.Default.Videocam,
+                                                                contentDescription = "Recording",
+                                                                tint = AppColors.Muted,
+                                                                modifier = Modifier.size(64.dp)
+                                                        )
+                                                        Spacer(modifier = Modifier.height(8.dp))
+                                                        Text(
+                                                                text = "Recording in background",
+                                                                color = AppColors.Muted,
+                                                                fontSize = 14.sp
+                                                        )
+                                                }
                                         }
 
                                         // Overlay badges
@@ -195,39 +231,41 @@ fun RecordingScreen(viewModel: AppViewModel, activity: MainActivity) {
                                                 }
                                         }
 
-                                        // Recording indicator
-                                        Surface(
-                                                modifier =
-                                                        Modifier.align(Alignment.BottomStart)
-                                                                .padding(16.dp),
-                                                color = AppColors.Background.copy(alpha = 0.7f),
-                                                shape = RoundedCornerShape(8.dp)
-                                        ) {
-                                                Row(
+                                        // Recording indicator - only show when actually recording
+                                        if (!isPreviewMode) {
+                                                Surface(
                                                         modifier =
-                                                                Modifier.padding(
-                                                                        horizontal = 12.dp,
-                                                                        vertical = 6.dp
-                                                                ),
-                                                        verticalAlignment =
-                                                                Alignment.CenterVertically
+                                                                Modifier.align(Alignment.BottomStart)
+                                                                        .padding(16.dp),
+                                                        color = AppColors.Background.copy(alpha = 0.7f),
+                                                        shape = RoundedCornerShape(8.dp)
                                                 ) {
-                                                        Box(
+                                                        Row(
                                                                 modifier =
-                                                                        Modifier.size(12.dp)
-                                                                                .clip(CircleShape)
-                                                                                .background(
-                                                                                        AppColors
-                                                                                                .Error
-                                                                                )
-                                                        )
-                                                        Spacer(modifier = Modifier.width(8.dp))
-                                                        Text(
-                                                                text = "REC",
-                                                                color = AppColors.Light,
-                                                                fontSize = 12.sp,
-                                                                fontWeight = FontWeight.Bold
-                                                        )
+                                                                        Modifier.padding(
+                                                                                horizontal = 12.dp,
+                                                                                vertical = 6.dp
+                                                                        ),
+                                                                verticalAlignment =
+                                                                        Alignment.CenterVertically
+                                                        ) {
+                                                                Box(
+                                                                        modifier =
+                                                                                Modifier.size(12.dp)
+                                                                                        .clip(CircleShape)
+                                                                                        .background(
+                                                                                                AppColors
+                                                                                                        .Error
+                                                                                        )
+                                                                )
+                                                                Spacer(modifier = Modifier.width(8.dp))
+                                                                Text(
+                                                                        text = "REC",
+                                                                        color = AppColors.Light,
+                                                                        fontSize = 12.sp,
+                                                                        fontWeight = FontWeight.Bold
+                                                                )
+                                                        }
                                                 }
                                         }
                                 }
@@ -265,7 +303,7 @@ fun RecordingScreen(viewModel: AppViewModel, activity: MainActivity) {
                         }
                 }
 
-                // Complete Journey Button
+                // Bottom Button - Start Recording or Complete Journey
                 Column(
                         modifier =
                                 Modifier.align(Alignment.BottomCenter)
@@ -284,34 +322,54 @@ fun RecordingScreen(viewModel: AppViewModel, activity: MainActivity) {
                 ) {
                         Button(
                                 onClick = {
-                                        // Stop recording service (also stops camera)
-                                        val intent =
-                                                Intent(context, RecordingService::class.java)
-                                                        .apply {
-                                                                action =
-                                                                        RecordingService
-                                                                                .ACTION_STOP_RECORDING
-                                                        }
-                                        context.startService(intent)
+                                        if (isPreviewMode) {
+                                                // Start actual recording
+                                                // 1. Unbind preview from camera
+                                                val service = viewModel.getRecordingService()
+                                                service?.getCameraManager()?.unbindPreview()
 
-                                        // Complete journey in ViewModel
-                                        viewModel.completeJourney()
+                                                // 2. Start camera recording (video only)
+                                                val intent =
+                                                        Intent(context, RecordingService::class.java)
+                                                                .apply {
+                                                                        action =
+                                                                                RecordingService
+                                                                                        .ACTION_START_CAMERA_RECORDING
+                                                                }
+                                                context.startService(intent)
+
+                                                // 3. Switch to recording mode
+                                                isPreviewMode = false
+                                        } else {
+                                                // Stop recording service (also stops camera)
+                                                val intent =
+                                                        Intent(context, RecordingService::class.java)
+                                                                .apply {
+                                                                        action =
+                                                                                RecordingService
+                                                                                        .ACTION_STOP_RECORDING
+                                                                }
+                                                context.startService(intent)
+
+                                                // Complete journey in ViewModel
+                                                viewModel.completeJourney()
+                                        }
                                 },
                                 modifier = Modifier.fillMaxWidth().height(64.dp),
                                 colors =
                                         ButtonDefaults.buttonColors(
-                                                containerColor = AppColors.Error
+                                                containerColor = if (isPreviewMode) AppColors.Success else AppColors.Error
                                         ),
                                 shape = RoundedCornerShape(16.dp)
                         ) {
                                 Icon(
-                                        imageVector = Icons.Default.Stop,
-                                        contentDescription = "Stop",
+                                        imageVector = if (isPreviewMode) Icons.Default.PlayArrow else Icons.Default.Stop,
+                                        contentDescription = if (isPreviewMode) "Start Recording" else "Stop",
                                         modifier = Modifier.size(24.dp)
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text(
-                                        text = "Complete Journey",
+                                        text = if (isPreviewMode) "Start Recording" else "Complete Journey",
                                         fontSize = 18.sp,
                                         fontWeight = FontWeight.SemiBold
                                 )
@@ -395,7 +453,7 @@ fun formatTime(seconds: Int): String {
         val hrs = seconds / 3600
         val mins = (seconds % 3600) / 60
         val secs = seconds % 60
-        return String.format("%02d:%02d:%02d", hrs, mins, secs)
+        return String.format(Locale.getDefault(), "%02d:%02d:%02d", hrs, mins, secs)
 }
 
 @Composable

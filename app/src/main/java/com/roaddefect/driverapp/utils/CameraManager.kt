@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.util.Log
 import androidx.camera.core.CameraSelector
+import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.video.FileOutputOptions
 import androidx.camera.video.Quality
@@ -13,6 +14,7 @@ import androidx.camera.video.Recorder
 import androidx.camera.video.Recording
 import androidx.camera.video.VideoCapture
 import androidx.camera.video.VideoRecordEvent
+import androidx.camera.view.PreviewView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
 import java.io.File
@@ -25,6 +27,7 @@ import kotlinx.coroutines.flow.asStateFlow
 data class CameraStatus(
         val isAvailable: Boolean = false,
         val isRecording: Boolean = false,
+        val isPreviewActive: Boolean = false,
         val hasPermission: Boolean = false,
         val recordingDurationMs: Long = 0
 )
@@ -34,8 +37,10 @@ class CameraManager(private val context: Context) {
     val status: StateFlow<CameraStatus> = _status.asStateFlow()
 
     private var videoCapture: VideoCapture<Recorder>? = null
+    private var preview: Preview? = null
     private var recording: Recording? = null
     private var cameraProvider: ProcessCameraProvider? = null
+    private var currentLifecycleOwner: LifecycleOwner? = null
     private val cameraExecutor: ExecutorService = Executors.newSingleThreadExecutor()
 
     fun checkCameraAvailability(): Boolean {
@@ -55,12 +60,96 @@ class CameraManager(private val context: Context) {
     }
 
     fun setupCamera(lifecycleOwner: LifecycleOwner, onCameraReady: () -> Unit) {
+        setupCameraVideoOnly(lifecycleOwner, onCameraReady)
+    }
+
+    /**
+     * Setup camera with both Preview and VideoCapture use cases.
+     * Call this when you want to show the camera preview in the UI.
+     */
+    fun setupCameraWithPreview(
+        lifecycleOwner: LifecycleOwner,
+        previewView: PreviewView,
+        onCameraReady: () -> Unit
+    ) {
         val cameraProviderFuture = ProcessCameraProvider.getInstance(context)
 
         cameraProviderFuture.addListener(
                 {
                     try {
                         cameraProvider = cameraProviderFuture.get()
+                        currentLifecycleOwner = lifecycleOwner
+
+                        val recorder =
+                                Recorder.Builder()
+                                        .setQualitySelector(QualitySelector.from(Quality.HD))
+                                        .build()
+
+                        videoCapture = VideoCapture.withOutput(recorder)
+
+                        preview = Preview.Builder().build().also {
+                            it.setSurfaceProvider(previewView.surfaceProvider)
+                        }
+
+                        val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
+
+                        cameraProvider?.unbindAll()
+                        cameraProvider?.bindToLifecycle(
+                                lifecycleOwner,
+                                cameraSelector,
+                                preview,
+                                videoCapture
+                        )
+
+                        _status.value = _status.value.copy(isAvailable = true, isPreviewActive = true)
+                        onCameraReady()
+
+                        Log.i("CamManager", "Camera setup with preview completed")
+                    } catch (e: Exception) {
+                        Log.e("CamManager", "Camera setup with preview failed", e)
+                        _status.value = _status.value.copy(isAvailable = false, isPreviewActive = false)
+                    }
+                },
+                ContextCompat.getMainExecutor(context)
+        )
+    }
+
+    /**
+     * Unbind preview while keeping VideoCapture bound.
+     * Call this when starting recording to allow screen-off recording.
+     */
+    fun unbindPreview() {
+        val provider = cameraProvider ?: return
+        val owner = currentLifecycleOwner ?: return
+        val videoCap = videoCapture ?: return
+
+        try {
+            provider.unbindAll()
+
+            // Rebind only VideoCapture
+            val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
+            provider.bindToLifecycle(owner, cameraSelector, videoCap)
+
+            preview = null
+            _status.value = _status.value.copy(isPreviewActive = false)
+            Log.i("CamManager", "Preview unbound, VideoCapture still active")
+        } catch (e: Exception) {
+            Log.e("CamManager", "Failed to unbind preview", e)
+        }
+    }
+
+    /**
+     * Setup camera with only VideoCapture (no preview).
+     * Use this for background recording.
+     */
+    fun setupCameraVideoOnly(lifecycleOwner: LifecycleOwner, onCameraReady: () -> Unit) {
+        val cameraProviderFuture = ProcessCameraProvider.getInstance(context)
+
+        cameraProviderFuture.addListener(
+                {
+                    try {
+                        cameraProvider = cameraProviderFuture.get()
+                        currentLifecycleOwner = lifecycleOwner
 
                         val recorder =
                                 Recorder.Builder()
@@ -78,12 +167,12 @@ class CameraManager(private val context: Context) {
                                 videoCapture
                         )
 
-                        _status.value = _status.value.copy(isAvailable = true)
+                        _status.value = _status.value.copy(isAvailable = true, isPreviewActive = false)
                         onCameraReady()
 
-                        Log.i("CameraManager", "Camera setup completed")
+                        Log.i("CamManager", "Camera setup (video only) completed")
                     } catch (e: Exception) {
-                        Log.e("CameraManager", "Camera setup failed", e)
+                        Log.e("CamManager", "Camera setup failed", e)
                         _status.value = _status.value.copy(isAvailable = false)
                     }
                 },
@@ -95,7 +184,7 @@ class CameraManager(private val context: Context) {
         val videoCap =
                 videoCapture
                         ?: run {
-                            Log.e("CameraManager", "VideoCapture not initialized")
+                            Log.e("CamManager", "VideoCapture not initialized")
                             return false
                         }
 
@@ -109,15 +198,15 @@ class CameraManager(private val context: Context) {
                         is VideoRecordEvent.Start -> {
                             _status.value = _status.value.copy(isRecording = true)
                             onRecordingStarted()
-                            Log.i("CameraManager", "Recording started")
+                            Log.i("CamManager", "Recording started")
                         }
                         is VideoRecordEvent.Finalize -> {
                             _status.value = _status.value.copy(isRecording = false)
                             if (event.hasError()) {
-                                Log.e("CameraManager", "Recording error: ${event.error}")
+                                Log.e("CamManager", "Recording error: ${event.error}")
                             } else {
                                 Log.i(
-                                        "CameraManager",
+                                        "CamManager",
                                         "Recording saved: ${outputFile.absolutePath}"
                                 )
                             }
@@ -132,7 +221,7 @@ class CameraManager(private val context: Context) {
         recording?.stop()
         recording = null
         _status.value = _status.value.copy(isRecording = false)
-        Log.i("CameraManager", "Recording stopped")
+        Log.i("CamManager", "Recording stopped")
     }
 
     fun release() {
@@ -142,3 +231,4 @@ class CameraManager(private val context: Context) {
         cameraExecutor.shutdown()
     }
 }
+
