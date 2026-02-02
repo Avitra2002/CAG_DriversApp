@@ -1,5 +1,6 @@
 package com.roaddefect.driverapp.ui.screens
 
+import android.content.res.Configuration
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -14,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -35,6 +37,8 @@ fun DashboardScreen(
     onNavigateToUploadQueue: () -> Unit
 ) {
     val currentDate = SimpleDateFormat("EEEE, MMMM dd, yyyy", Locale.getDefault()).format(Date())
+    val configuration = LocalConfiguration.current
+    val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
 
     Box(
         modifier = Modifier
@@ -119,20 +123,44 @@ fun DashboardScreen(
                         fontWeight = FontWeight.Medium
                     )
                     Spacer(modifier = Modifier.height(16.dp))
-                    SensorStatusRow("Back Camera", sensorStatus.camera, Icons.Default.Camera)
-                    Spacer(modifier = Modifier.height(12.dp))
-                    SensorStatusRow("GPS Tracker", sensorStatus.gps, Icons.Default.LocationOn)
-                    Spacer(modifier = Modifier.height(12.dp))
-                    SensorStatusRow("IMU Sensors", sensorStatus.imu, Icons.Default.Sensors)
-                    Spacer(modifier = Modifier.height(12.dp))
-                    SensorStatusRow("BLE", sensorStatus.bluetooth, Icons.Default.Bluetooth)
-                    Spacer(modifier = Modifier.height(12.dp))
-                    SensorStatusRow(
-                        "Storage Available",
-                        sensorStatus.storage > 20,
-                        Icons.Default.Storage,
-                        "${sensorStatus.storage}%"
-                    )
+
+                    if (isLandscape) {
+                        Row(modifier = Modifier.fillMaxWidth()) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                SensorStatusRow("Back Camera", sensorStatus.camera, Icons.Default.Camera)
+                                Spacer(modifier = Modifier.height(12.dp))
+                                SensorStatusRow("GPS Tracker", sensorStatus.gps, Icons.Default.LocationOn)
+                                Spacer(modifier = Modifier.height(12.dp))
+                                SensorStatusRow("IMU Sensors", sensorStatus.imu, Icons.Default.Sensors)
+                            }
+                            Spacer(modifier = Modifier.width(24.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                SensorStatusRow("BLE", sensorStatus.bluetooth, Icons.Default.Bluetooth)
+                                Spacer(modifier = Modifier.height(12.dp))
+                                SensorStatusRow(
+                                    "Storage Available",
+                                    sensorStatus.storage > 20,
+                                    Icons.Default.Storage,
+                                    "${sensorStatus.storage}%"
+                                )
+                            }
+                        }
+                    } else {
+                        SensorStatusRow("Back Camera", sensorStatus.camera, Icons.Default.Camera)
+                        Spacer(modifier = Modifier.height(12.dp))
+                        SensorStatusRow("GPS Tracker", sensorStatus.gps, Icons.Default.LocationOn)
+                        Spacer(modifier = Modifier.height(12.dp))
+                        SensorStatusRow("IMU Sensors", sensorStatus.imu, Icons.Default.Sensors)
+                        Spacer(modifier = Modifier.height(12.dp))
+                        SensorStatusRow("BLE", sensorStatus.bluetooth, Icons.Default.Bluetooth)
+                        Spacer(modifier = Modifier.height(12.dp))
+                        SensorStatusRow(
+                            "Storage Available",
+                            sensorStatus.storage > 20,
+                            Icons.Default.Storage,
+                            "${sensorStatus.storage}%"
+                        )
+                    }
                 }
             }
 
@@ -187,7 +215,7 @@ fun DashboardScreen(
         }
 
         // Bottom Button Area
-        Column(
+        Box(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
@@ -200,142 +228,289 @@ fun DashboardScreen(
                         )
                     )
                 )
-                .padding(24.dp)
+                .padding(if (isLandscape) 16.dp else 24.dp)
         ) {
-            Button(
-                onClick = onStartRecording,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(64.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = AppColors.Primary),
-                shape = RoundedCornerShape(16.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.PlayArrow,
-                    contentDescription = "Start",
-                    modifier = Modifier.size(24.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = "Start Recording",
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.SemiBold
-                )
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Quick Actions
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Button(
-                    onClick = onNavigateToHealth,
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(56.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = AppColors.Surface,
-                        contentColor = AppColors.Light
-                    ),
-                    shape = RoundedCornerShape(16.dp),
-                    contentPadding = PaddingValues(horizontal = 4.dp, vertical = 8.dp)
+            if (isLandscape) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
-                    ) {
-                        Icon(
-                            Icons.Default.Settings,
-                            contentDescription = "Health",
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            "Health",
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Medium,
-                            maxLines = 1
-                        )
-                    }
-                }
-                Button(
-                    onClick = onNavigateToHistory,
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(56.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = AppColors.Surface,
-                        contentColor = AppColors.Light
-                    ),
-                    shape = RoundedCornerShape(16.dp),
-                    contentPadding = PaddingValues(horizontal = 4.dp, vertical = 8.dp)
-                ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
-                    ) {
-                        Icon(
-                            Icons.Default.History,
-                            contentDescription = "History",
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            "History",
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Medium,
-                            maxLines = 1
-                        )
-                    }
-                }
-                Box(modifier = Modifier.weight(1f)) {
                     Button(
-                        onClick = onNavigateToUploadQueue,
+                        onClick = onStartRecording,
                         modifier = Modifier
-                            .fillMaxWidth()
+                            .weight(1f)
                             .height(56.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = AppColors.Surface,
-                            contentColor = AppColors.Light
-                        ),
-                        shape = RoundedCornerShape(16.dp),
-                        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 8.dp)
+                        colors = ButtonDefaults.buttonColors(containerColor = AppColors.Primary),
+                        shape = RoundedCornerShape(16.dp)
                     ) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.Center
+                        Icon(
+                            imageVector = Icons.Default.PlayArrow,
+                            contentDescription = "Start",
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Start Recording",
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            maxLines = 1
+                        )
+                    }
+
+                    Row(
+                        modifier = Modifier.weight(1.5f),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Button(
+                            onClick = onNavigateToHealth,
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(56.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = AppColors.Surface,
+                                contentColor = AppColors.Light
+                            ),
+                            shape = RoundedCornerShape(16.dp),
+                            contentPadding = PaddingValues(horizontal = 4.dp, vertical = 8.dp)
                         ) {
-                            Icon(
-                                Icons.Default.Upload,
-                                contentDescription = "Uploads",
-                                modifier = Modifier.size(20.dp)
-                            )
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(
-                                "Uploads",
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.Medium,
-                                maxLines = 1
-                            )
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center
+                            ) {
+                                Icon(
+                                    Icons.Default.Settings,
+                                    contentDescription = "Health",
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    "Health",
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    maxLines = 1
+                                )
+                            }
+                        }
+                        Button(
+                            onClick = onNavigateToHistory,
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(56.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = AppColors.Surface,
+                                contentColor = AppColors.Light
+                            ),
+                            shape = RoundedCornerShape(16.dp),
+                            contentPadding = PaddingValues(horizontal = 4.dp, vertical = 8.dp)
+                        ) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center
+                            ) {
+                                Icon(
+                                    Icons.Default.History,
+                                    contentDescription = "History",
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    "History",
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    maxLines = 1
+                                )
+                            }
+                        }
+                        Box(modifier = Modifier.weight(1f)) {
+                            Button(
+                                onClick = onNavigateToUploadQueue,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(56.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = AppColors.Surface,
+                                    contentColor = AppColors.Light
+                                ),
+                                shape = RoundedCornerShape(16.dp),
+                                contentPadding = PaddingValues(horizontal = 4.dp, vertical = 8.dp)
+                            ) {
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.Center
+                                ) {
+                                    Icon(
+                                        Icons.Default.Upload,
+                                        contentDescription = "Uploads",
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(
+                                        "Uploads",
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.Medium,
+                                        maxLines = 1
+                                    )
+                                }
+                            }
+                            if (pendingUploads > 0) {
+                                Surface(
+                                    modifier = Modifier
+                                        .align(Alignment.TopEnd)
+                                        .offset(x = 8.dp, y = (-8).dp),
+                                    color = AppColors.Error,
+                                    shape = RoundedCornerShape(12.dp)
+                                ) {
+                                    Text(
+                                        text = pendingUploads.toString(),
+                                        color = AppColors.Light,
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                    )
+                                }
+                            }
                         }
                     }
-                    if (pendingUploads > 0) {
-                        Surface(
+                }
+            } else {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    Button(
+                        onClick = onStartRecording,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(64.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = AppColors.Primary),
+                        shape = RoundedCornerShape(16.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.PlayArrow,
+                            contentDescription = "Start",
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Start Recording",
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Quick Actions
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Button(
+                            onClick = onNavigateToHealth,
                             modifier = Modifier
-                                .align(Alignment.TopEnd)
-                                .offset(x = 8.dp, y = (-8).dp),
-                            color = AppColors.Error,
-                            shape = RoundedCornerShape(12.dp)
+                                .weight(1f)
+                                .height(56.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = AppColors.Surface,
+                                contentColor = AppColors.Light
+                            ),
+                            shape = RoundedCornerShape(16.dp),
+                            contentPadding = PaddingValues(horizontal = 4.dp, vertical = 8.dp)
                         ) {
-                            Text(
-                                text = pendingUploads.toString(),
-                                color = AppColors.Light,
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Bold,
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                            )
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center
+                            ) {
+                                Icon(
+                                    Icons.Default.Settings,
+                                    contentDescription = "Health",
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    "Health",
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    maxLines = 1
+                                )
+                            }
+                        }
+                        Button(
+                            onClick = onNavigateToHistory,
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(56.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = AppColors.Surface,
+                                contentColor = AppColors.Light
+                            ),
+                            shape = RoundedCornerShape(16.dp),
+                            contentPadding = PaddingValues(horizontal = 4.dp, vertical = 8.dp)
+                        ) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center
+                            ) {
+                                Icon(
+                                    Icons.Default.History,
+                                    contentDescription = "History",
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    "History",
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    maxLines = 1
+                                )
+                            }
+                        }
+                        Box(modifier = Modifier.weight(1f)) {
+                            Button(
+                                onClick = onNavigateToUploadQueue,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(56.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = AppColors.Surface,
+                                    contentColor = AppColors.Light
+                                ),
+                                shape = RoundedCornerShape(16.dp),
+                                contentPadding = PaddingValues(horizontal = 4.dp, vertical = 8.dp)
+                            ) {
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.Center
+                                ) {
+                                    Icon(
+                                        Icons.Default.Upload,
+                                        contentDescription = "Uploads",
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(
+                                        "Uploads",
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.Medium,
+                                        maxLines = 1
+                                    )
+                                }
+                            }
+                            if (pendingUploads > 0) {
+                                Surface(
+                                    modifier = Modifier
+                                        .align(Alignment.TopEnd)
+                                        .offset(x = 8.dp, y = (-8).dp),
+                                    color = AppColors.Error,
+                                    shape = RoundedCornerShape(12.dp)
+                                ) {
+                                    Text(
+                                        text = pendingUploads.toString(),
+                                        color = AppColors.Light,
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                    )
+                                }
+                            }
                         }
                     }
                 }
