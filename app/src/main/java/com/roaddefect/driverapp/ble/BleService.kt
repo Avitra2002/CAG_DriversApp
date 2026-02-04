@@ -54,6 +54,14 @@ class BleService : Service() {
 
     override fun onBind(intent: Intent?): IBinder = binder
 
+    override fun onTaskRemoved(rootIntent: Intent?) {
+        super.onTaskRemoved(rootIntent)
+        Log.d(TAG, "App closing, BleService is shutting down cleaning up...")
+        stopForeground(STOP_FOREGROUND_REMOVE)
+        stopSelf()
+        Log.d(TAG," BleService stopped")
+    }
+
     override fun onCreate() {
         super.onCreate()
         createNotificationChannel()
@@ -275,7 +283,7 @@ class BleService : Service() {
         bluetoothGatt?.close()
         bluetoothGatt = null
         _connectionState.value = BleConnectionState.Disconnected
-        updateNotification("Disconnected")
+//        updateNotification("Disconnected")
     }
 
     override fun onDestroy() {

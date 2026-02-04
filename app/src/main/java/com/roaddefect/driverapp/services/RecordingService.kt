@@ -21,11 +21,6 @@ import com.roaddefect.driverapp.utils.CameraManager
 import com.roaddefect.driverapp.utils.FileManager
 import com.roaddefect.driverapp.utils.GPSTracker
 import com.roaddefect.driverapp.utils.IMUSensorManager
-import java.io.File
-import java.io.FileWriter
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -35,6 +30,11 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import java.io.File
+import java.io.FileWriter
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 data class RecordingStatus(
         val isRecording: Boolean = false,
@@ -85,7 +85,7 @@ class RecordingService : LifecycleService() {
         imuSensorManager = IMUSensorManager(this)
         cameraManager = CameraManager(this)
         ensureChannel()
-        Log.i("RecordingService", "Service created")
+        Log.i("RecordingService", "Recording Service created")
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -108,6 +108,12 @@ class RecordingService : LifecycleService() {
     override fun onBind(intent: Intent): IBinder {
         super.onBind(intent)
         return binder
+    }
+
+    override fun onTaskRemoved(rootIntent: Intent?) {
+        super.onTaskRemoved(rootIntent)
+        Log.d("RecordingService", "App closing, RecordingService is shutting down cleaning up...")
+        stopRecording()
     }
 
     private fun generateTripId(): String {
