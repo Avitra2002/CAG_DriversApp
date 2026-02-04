@@ -44,7 +44,7 @@ fun RecordingScreen(viewModel: AppViewModel, activity: MainActivity) {
         val trip = currentTrip ?: return
 
         // Track whether we're in preview mode or recording mode
-        var isPreviewMode by remember { mutableStateOf(true) }
+        val isPreviewMode by viewModel.isPreviewMode.collectAsState()
         var previewView by remember { mutableStateOf<PreviewView?>(null) }
 
         // Start recording service when screen appears (but NOT camera recording yet)
@@ -339,7 +339,7 @@ fun RecordingScreen(viewModel: AppViewModel, activity: MainActivity) {
                                                 context.startService(intent)
 
                                                 // 3. Switch to recording mode
-                                                isPreviewMode = false
+                                                viewModel.setIsPreviewMode(false)
                                         } else {
                                                 // Stop recording service (also stops camera)
                                                 val intent =
@@ -350,6 +350,9 @@ fun RecordingScreen(viewModel: AppViewModel, activity: MainActivity) {
                                                                                         .ACTION_STOP_RECORDING
                                                                 }
                                                 context.startService(intent)
+
+                                                // Switch back to preview mode
+                                                viewModel.setIsPreviewMode(true)
 
                                                 // Complete journey in ViewModel
                                                 viewModel.completeJourney()

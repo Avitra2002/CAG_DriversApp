@@ -49,6 +49,9 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     private val _isWifiConnected = MutableStateFlow(false)
     val isWifiConnected: StateFlow<Boolean> = _isWifiConnected.asStateFlow()
 
+    private val _isPreviewMode = MutableStateFlow(true)
+    val isPreviewMode: StateFlow<Boolean> = _isPreviewMode.asStateFlow()
+
     private val _tripSummarySource = MutableStateFlow(TripSummarySource.FROM_RECORDING)
     val tripSummarySource: StateFlow<TripSummarySource> = _tripSummarySource.asStateFlow()
 
@@ -260,6 +263,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     fun getRecordingService(): com.roaddefect.driverapp.services.RecordingService? =
             recordingServiceBinder
+
+    fun setIsPreviewMode(value: Boolean) {
+        _isPreviewMode.value = value
+    }
 
     val pendingUploads: Int
         get() = _trips.value.count { it.uploadStatus != UploadStatus.COMPLETED }
