@@ -17,8 +17,8 @@ object FileManager {
     private const val ESP32_IMU_FILE_NAME = "esp32_imu.csv"
 
     fun getTripDirectory(context: Context, tripId: String): File {
-        val tripsDir = File(context.getExternalFilesDir(null), TRIP_FOLDER_NAME)
-        val tripDir = File(tripsDir, tripId)
+        val tripDir = File(context.getExternalFilesDir(null), tripId)
+//        val tripDir = File(tripsDir, tripId)
         tripDir.mkdirs()
         return tripDir
     }

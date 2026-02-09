@@ -30,7 +30,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import java.io.File
 import java.io.FileWriter
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -47,8 +46,7 @@ data class RecordingStatus(
 class RecordingService : LifecycleService() {
 
     companion object {
-        const val ACTION_START_RECORDING = "action_start_recording"
-        const val ACTION_START_CAMERA_RECORDING = "action_start_camera_recording"
+        const val ACTION_START_RECORDING = "action_start_camera_recording"
         const val ACTION_STOP_RECORDING = "action_stop_recording"
         const val EXTRA_TRIP_ID = "extra_trip_id"
 
@@ -68,7 +66,6 @@ class RecordingService : LifecycleService() {
     val status: StateFlow<RecordingStatus> = _status.asStateFlow()
 
     private var startTimeMs: Long = 0
-    private var tripDirectory: File? = null
 
     // ESP32 sensor data collection
     private val esp32SensorSamples = mutableListOf<SensorSample>()
@@ -88,14 +85,14 @@ class RecordingService : LifecycleService() {
         Log.i("RecordingService", "Recording Service created")
     }
 
+    // Basically everytime you want this service to move to another state, you create an Intent and call startService()
+    // multiple calls to startService() will just call onStartCommand() again with the new Intent
+    // Won't create multiple instances of the service.
+    // Feels like a hackjob, but whatever.
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         super.onStartCommand(intent, flags, startId)
         when (intent?.action) {
             ACTION_START_RECORDING -> {
-                val tripId = intent.getStringExtra(EXTRA_TRIP_ID) ?: generateTripId()
-                startRecording(tripId)
-            }
-            ACTION_START_CAMERA_RECORDING -> {
                 startCameraRecording()
             }
             ACTION_STOP_RECORDING -> {
@@ -121,84 +118,64 @@ class RecordingService : LifecycleService() {
         return "trip_${dateFormat.format(Date())}"
     }
 
-    fun startRecording(tripId: String) {
-        if (_status.value.isRecording) {
-            Log.w("RecordingService", "Already recording")
-            return
-        }
-
-        startForeground(NOTIF_ID, buildNotif("Preparing recording..."))
-
-        acquireWakeLock()
-
-        // Create trip directory
-        tripDirectory = File(getExternalFilesDir(null), tripId).apply {
-            mkdirs()
-        }
-
-        startTimeMs = System.currentTimeMillis()
-
-        // Start GPS tracking
-        val gpsFile = File(tripDirectory, "gps_data.csv")
-        gpsTracker.startTracking(gpsFile)
-
-        // Start IMU recording
-        val imuFile = File(tripDirectory, "imu_data.csv")
-        imuSensorManager.startRecording(imuFile)
-
-        // Update status - but camera recording NOT started yet
-        _status.value =
-                RecordingStatus(
-                        isRecording = true,
-                        tripId = tripId,
-                        elapsedTimeMs = 0,
-                        distance = 0.0,
-                        isCameraRecording = false
-                )
-
-        // Start timer for elapsed time
-        timerJob =
-                serviceScope.launch {
-                    while (true) {
-                        val elapsed = System.currentTimeMillis() - startTimeMs
-                        val distance = gpsTracker.status.value.totalDistance
-
-                        _status.value =
-                                _status.value.copy(elapsedTimeMs = elapsed, distance = distance)
-
-                        updateNotif(
-                                "Recording: ${formatTime(elapsed)} | ${formatDistance(distance)}"
-                        )
-                        delay(1000)
-                    }
-                }
-
-        Log.i("RecordingService", "Recording started for trip: $tripId (camera not started)")
-    }
-
     /**
      * Start camera recording after preview has been unbound.
      * This should be called after the user clicks "Start Recording" in the UI.
      */
     fun startCameraRecording() {
-        if (!_status.value.isRecording) {
-            Log.w("RecordingService", "Cannot start camera - not recording")
-            return
-        }
 
         if (_status.value.isCameraRecording) {
             Log.w("RecordingService", "Camera already recording")
             return
         }
 
-        val tripId = _status.value.tripId
+        startForeground(NOTIF_ID, buildNotif("Begin Recording."))
+
+        acquireWakeLock()
+
+        val tripId = generateTripId()
+
+        startTimeMs = System.currentTimeMillis()
+
+        // Start GPS tracking
+        val gpsFile = FileManager.getGPSFile(this, tripId)
+        gpsTracker.startTracking(gpsFile)
+
+        // Start IMU recording
+        val imuFile = FileManager.getIMUFile(this, tripId)
+        imuSensorManager.startRecording(imuFile)
+
+        _status.value =
+            RecordingStatus(
+                isRecording = true,
+                tripId = tripId,
+                elapsedTimeMs = 0,
+                distance = 0.0,
+                isCameraRecording = true
+            )
+
+        // Start timer for elapsed time
+        timerJob =
+            serviceScope.launch {
+                while (true) {
+                    val elapsed = System.currentTimeMillis() - startTimeMs
+                    val distance = gpsTracker.status.value.totalDistance
+
+                    _status.value =
+                        _status.value.copy(elapsedTimeMs = elapsed, distance = distance)
+
+                    updateNotif(
+                        "Recording: ${formatTime(elapsed)} | ${formatDistance(distance)}"
+                    )
+                    delay(1000)
+                }
+            }
 
         // Setup camera (video only, no preview) and start recording
         cameraManager.setupCameraVideoOnly(this) {
             // Camera ready, start recording
             val videoFile = FileManager.getVideoFile(this, tripId)
             cameraManager.startRecording(videoFile) {
-                _status.value = _status.value.copy(isCameraRecording = true)
                 Log.i("RecordingService", "Camera recording started")
             }
         }
@@ -217,10 +194,9 @@ class RecordingService : LifecycleService() {
         }
     }
 
-    fun stopRecording(): File? {
+    fun stopRecording() {
         if (!_status.value.isRecording) {
             Log.w("RecordingService", "Not currently recording")
-            return null
         }
 
         timerJob?.cancel()
@@ -246,12 +222,9 @@ class RecordingService : LifecycleService() {
         stopSelf()
 
         Log.i("RecordingService", "Recording stopped")
-
-        return tripDirectory
     }
 
     private fun saveESP32Data() {
-        val tripDir = tripDirectory ?: return
         val samples: List<SensorSample>
         synchronized(esp32SensorSamples) {
             if (esp32SensorSamples.isEmpty()) {
@@ -264,7 +237,7 @@ class RecordingService : LifecycleService() {
 
         // Save ESP32 GPS data
         try {
-            val esp32GpsFile = File(tripDir, "esp32_gps.csv")
+            val esp32GpsFile = FileManager.getESP32GpsFile(this, _status.value.tripId)
             FileWriter(esp32GpsFile).use { writer ->
                 writer.write("timestamp,latitude,longitude,altitude\n")
                 samples.forEach { sample ->
@@ -280,7 +253,7 @@ class RecordingService : LifecycleService() {
 
         // Save ESP32 IMU data
         try {
-            val esp32ImuFile = File(tripDir, "esp32_imu.csv")
+            val esp32ImuFile = FileManager.getESP32ImuFile(this, _status.value.tripId)
             FileWriter(esp32ImuFile).use { writer ->
                 writer.write("timestamp,ax,ay,az,gx,gy,gz\n")
                 samples.forEach { sample ->
@@ -293,7 +266,6 @@ class RecordingService : LifecycleService() {
         }
     }
 
-    fun getTripDirectory(): File? = tripDirectory
 
     fun getCameraManager(): CameraManager = cameraManager
 

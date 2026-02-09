@@ -25,7 +25,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
-import androidx.core.content.ContextCompat
 import com.roaddefect.driverapp.AppViewModel
 import com.roaddefect.driverapp.MainActivity
 import com.roaddefect.driverapp.services.RecordingService
@@ -46,16 +45,6 @@ fun RecordingScreen(viewModel: AppViewModel, activity: MainActivity) {
         // Track whether we're in preview mode or recording mode
         val isPreviewMode by viewModel.isPreviewMode.collectAsState()
         var previewView by remember { mutableStateOf<PreviewView?>(null) }
-
-        // Start recording service when screen appears (but NOT camera recording yet)
-        LaunchedEffect(Unit) {
-                val intent =
-                        Intent(context, RecordingService::class.java).apply {
-                                action = RecordingService.ACTION_START_RECORDING
-                                putExtra(RecordingService.EXTRA_TRIP_ID, trip.id)
-                        }
-                ContextCompat.startForegroundService(context, intent)
-        }
 
         // Setup camera preview when preview view is ready
         LaunchedEffect(previewView, isPreviewMode) {
@@ -334,7 +323,7 @@ fun RecordingScreen(viewModel: AppViewModel, activity: MainActivity) {
                                                                 .apply {
                                                                         action =
                                                                                 RecordingService
-                                                                                        .ACTION_START_CAMERA_RECORDING
+                                                                                        .ACTION_START_RECORDING
                                                                 }
                                                 context.startService(intent)
 
