@@ -102,6 +102,11 @@ dependencies {
     implementation("com.amplifyframework:aws-auth-cognito:2.16.0")
     implementation("com.amplifyframework:aws-storage-s3:2.16.0")
 
+    // HTTP Client for API calls
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.0")
+
     // Testing
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.1.5")

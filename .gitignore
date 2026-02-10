@@ -82,3 +82,7 @@ lint/tmp/
 # Local trip data
 app/src/main/res/raw/trips/
 trips/
+
+# API config with environment-specific values
+app/src/main/java/com/roaddefect/driverapp/config/ApiConfig.kt
+app/src/main/res/raw/amplifyconfiguration.json
