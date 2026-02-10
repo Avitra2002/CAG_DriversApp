@@ -21,6 +21,7 @@ import com.roaddefect.driverapp.utils.CameraManager
 import com.roaddefect.driverapp.utils.FileManager
 import com.roaddefect.driverapp.utils.GPSTracker
 import com.roaddefect.driverapp.utils.IMUSensorManager
+import java.util.TimeZone
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -139,7 +140,8 @@ class RecordingService : LifecycleService() {
 
         // Start GPS tracking
         val gpsFile = FileManager.getGPSFile(this, tripId)
-        gpsTracker.startTracking(gpsFile)
+        val gpsGpxFile = FileManager.getGPSGpxFile(this, tripId)
+        gpsTracker.startTracking(gpsFile, gpsGpxFile)
 
         // Start IMU recording
         val imuFile = FileManager.getIMUFile(this, tripId)
@@ -249,6 +251,37 @@ class RecordingService : LifecycleService() {
             Log.i("RecordingService", "ESP32 GPS data saved: ${esp32GpsFile.absolutePath}")
         } catch (e: Exception) {
             Log.e("RecordingService", "Failed to save ESP32 GPS data", e)
+        }
+
+        // Save ESP32 GPS data in GPX format
+        try {
+            val esp32GpsGpxFile = FileManager.getESP32GpsGpxFile(this, _status.value.tripId)
+            FileWriter(esp32GpsGpxFile).use { writer ->
+                writer.write("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n")
+                writer.write("<gpx version=\"1.1\" creator=\"CAG_DriversApp\" xmlns=\"http://www.topografix.com/GPX/1/1\">\n")
+                writer.write("<trk>\n")
+                writer.write("<trkseg>\n")
+
+                val dateFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US)
+                dateFormat.timeZone = TimeZone.getTimeZone("UTC")
+
+                samples.forEach { sample ->
+                    if (sample.hasValidGnss()) {
+                        val timeStr = dateFormat.format(Date(sample.timestampMs))
+                        writer.write("<trkpt lat=\"${sample.latitude}\" lon=\"${sample.longitude}\">" +
+                                "<ele>${sample.altitude}</ele>" +
+                                "<time>$timeStr</time>" +
+                                "</trkpt>\n")
+                    }
+                }
+
+                writer.write("</trkseg>\n")
+                writer.write("</trk>\n")
+                writer.write("</gpx>\n")
+            }
+            Log.i("RecordingService", "ESP32 GPS GPX data saved: ${esp32GpsGpxFile.absolutePath}")
+        } catch (e: Exception) {
+            Log.e("RecordingService", "Failed to save ESP32 GPS GPX data", e)
         }
 
         // Save ESP32 IMU data

@@ -21,6 +21,7 @@ import java.io.FileWriter
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import java.util.TimeZone
 
 data class GPSData(
     val latitude: Double,
@@ -49,8 +50,14 @@ class GPSTracker(private val context: Context) {
     private var locationCallback: LocationCallback? = null
     private var gpsLogFile: File? = null
     private var fileWriter: FileWriter? = null
+    private var gpxFile: File? = null
+    private var gpxWriter: FileWriter? = null
     private var lastLocation: Location? = null
     private var totalDistance: Double = 0.0
+
+    private val iso8601Format = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US).apply {
+        timeZone = TimeZone.getTimeZone("UTC")
+    }
 
     fun checkGPSAvailability(): Boolean {
         val hasPermission = ContextCompat.checkSelfPermission(
@@ -66,13 +73,14 @@ class GPSTracker(private val context: Context) {
         return hasPermission
     }
 
-    fun startTracking(outputFile: File) {
+    fun startTracking(outputFile: File, gpxOutputFile: File? = null) {
         if (!checkGPSAvailability()) {
             Log.e("GPSTracker", "GPS not available or no permission")
             return
         }
 
         gpsLogFile = outputFile
+        gpxFile = gpxOutputFile
         totalDistance = 0.0
         lastLocation = null
 
@@ -84,6 +92,19 @@ class GPSTracker(private val context: Context) {
         } catch (e: Exception) {
             Log.e("GPSTracker", "Failed to create GPS log file", e)
             return
+        }
+
+        if (gpxFile != null) {
+            try {
+                gpxWriter = FileWriter(gpxFile, true)
+                gpxWriter?.write("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n")
+                gpxWriter?.write("<gpx version=\"1.1\" creator=\"CAG_DriversApp\" xmlns=\"http://www.topografix.com/GPX/1/1\">\n")
+                gpxWriter?.write("<trk>\n")
+                gpxWriter?.write("<trkseg>\n")
+                gpxWriter?.flush()
+            } catch (e: Exception) {
+                Log.e("GPSTracker", "Failed to create GPX log file", e)
+            }
         }
 
         val request = LocationRequest.Builder(
@@ -126,6 +147,21 @@ class GPSTracker(private val context: Context) {
                 } catch (e: Exception) {
                     Log.e("GPSTracker", "Failed to write GPS data", e)
                 }
+
+                // Log to GPX
+                if (gpxWriter != null) {
+                    try {
+                        val timeStr = iso8601Format.format(Date(gpsData.timestamp))
+                        val line = "<trkpt lat=\"${gpsData.latitude}\" lon=\"${gpsData.longitude}\">" +
+                                "<ele>${gpsData.altitude}</ele>" +
+                                "<time>$timeStr</time>" +
+                                "</trkpt>\n"
+                        gpxWriter?.write(line)
+                        gpxWriter?.flush()
+                    } catch (e: Exception) {
+                        Log.e("GPSTracker", "Failed to write GPX data", e)
+                    }
+                }
             }
         }
 
@@ -153,6 +189,16 @@ class GPSTracker(private val context: Context) {
             Log.e("GPSTracker", "Failed to close GPS log file", e)
         }
         fileWriter = null
+
+        try {
+            gpxWriter?.write("</trkseg>\n")
+            gpxWriter?.write("</trk>\n")
+            gpxWriter?.write("</gpx>\n")
+            gpxWriter?.close()
+        } catch (e: Exception) {
+            Log.e("GPSTracker", "Failed to close GPX log file", e)
+        }
+        gpxWriter = null
 
         _status.value = _status.value.copy(isTracking = false)
         Log.i("GPSTracker", "GPS tracking stopped. Total distance: $totalDistance meters")
