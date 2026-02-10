@@ -3,8 +3,6 @@ package com.roaddefect.driverapp.ui.screens
 import android.content.res.Configuration
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -40,7 +38,7 @@ fun DashboardScreen(
     val configuration = LocalConfiguration.current
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
 
-    Box(
+    Column(
         modifier = Modifier
             .fillMaxSize()
             .background(
@@ -51,13 +49,12 @@ fun DashboardScreen(
                     )
                 )
             )
+            .padding(24.dp)
     ) {
         Column(
             modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(24.dp)
-                .padding(bottom = 200.dp)
+                .weight(1f)
+                .fillMaxWidth()
         ) {
             // Header
             Row(
@@ -70,6 +67,21 @@ fun DashboardScreen(
                     color = AppColors.Muted,
                     fontSize = 14.sp
                 )
+
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        text = "Vehicle $vehicleId",
+                        color = AppColors.Light,
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = currentDate,
+                        color = AppColors.Muted,
+                        fontSize = 14.sp
+                    )
+                }
+
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
                         imageVector = if (isWifiConnected) Icons.Default.Wifi else Icons.Default.WifiOff,
@@ -93,21 +105,6 @@ fun DashboardScreen(
             }
 
             Spacer(modifier = Modifier.height(24.dp))
-
-            // Vehicle Info
-            Text(
-                text = "Vehicle $vehicleId",
-                color = AppColors.Light,
-                fontSize = 24.sp,
-                fontWeight = FontWeight.Bold
-            )
-            Text(
-                text = currentDate,
-                color = AppColors.Muted,
-                fontSize = 14.sp
-            )
-
-            Spacer(modifier = Modifier.height(32.dp))
 
             // System Status Card
             Card(
@@ -214,58 +211,84 @@ fun DashboardScreen(
             }
         }
 
+        Spacer(modifier = Modifier.height(16.dp))
+
         // Bottom Button Area
-        Box(
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .fillMaxWidth()
-                .background(
-                    Brush.verticalGradient(
-                        colors = listOf(
-                            Color.Transparent,
-                            AppColors.Background,
-                            AppColors.Background
-                        )
-                    )
-                )
-                .padding(if (isLandscape) 16.dp else 24.dp)
-        ) {
-            if (isLandscape) {
+        if (isLandscape) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                    modifier = Modifier.weight(1.5f),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Button(
-                        onClick = onStartRecording,
+                        onClick = onNavigateToHealth,
                         modifier = Modifier
                             .weight(1f)
                             .height(56.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = AppColors.Primary),
-                        shape = RoundedCornerShape(16.dp)
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = AppColors.Surface,
+                            contentColor = AppColors.Light
+                        ),
+                        shape = RoundedCornerShape(16.dp),
+                        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 8.dp)
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.PlayArrow,
-                            contentDescription = "Start",
-                            modifier = Modifier.size(24.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "Start Recording",
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            maxLines = 1
-                        )
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
+                        ) {
+                            Icon(
+                                Icons.Default.Settings,
+                                contentDescription = "Health",
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                "Health",
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Medium,
+                                maxLines = 1
+                            )
+                        }
                     }
-
-                    Row(
-                        modifier = Modifier.weight(1.5f),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    Button(
+                        onClick = onNavigateToHistory,
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(56.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = AppColors.Surface,
+                            contentColor = AppColors.Light
+                        ),
+                        shape = RoundedCornerShape(16.dp),
+                        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 8.dp)
                     ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
+                        ) {
+                            Icon(
+                                Icons.Default.History,
+                                contentDescription = "History",
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                "History",
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Medium,
+                                maxLines = 1
+                            )
+                        }
+                    }
+                    Box(modifier = Modifier.weight(1f)) {
                         Button(
-                            onClick = onNavigateToHealth,
+                            onClick = onNavigateToUploadQueue,
                             modifier = Modifier
-                                .weight(1f)
+                                .fillMaxWidth()
                                 .height(56.dp),
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = AppColors.Surface,
@@ -279,134 +302,156 @@ fun DashboardScreen(
                                 verticalArrangement = Arrangement.Center
                             ) {
                                 Icon(
-                                    Icons.Default.Settings,
-                                    contentDescription = "Health",
+                                    Icons.Default.Upload,
+                                    contentDescription = "Uploads",
                                     modifier = Modifier.size(20.dp)
                                 )
                                 Spacer(modifier = Modifier.height(4.dp))
                                 Text(
-                                    "Health",
+                                    "Uploads",
                                     fontSize = 13.sp,
                                     fontWeight = FontWeight.Medium,
                                     maxLines = 1
                                 )
                             }
                         }
-                        Button(
-                            onClick = onNavigateToHistory,
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(56.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = AppColors.Surface,
-                                contentColor = AppColors.Light
-                            ),
-                            shape = RoundedCornerShape(16.dp),
-                            contentPadding = PaddingValues(horizontal = 4.dp, vertical = 8.dp)
-                        ) {
-                            Column(
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.Center
-                            ) {
-                                Icon(
-                                    Icons.Default.History,
-                                    contentDescription = "History",
-                                    modifier = Modifier.size(20.dp)
-                                )
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Text(
-                                    "History",
-                                    fontSize = 13.sp,
-                                    fontWeight = FontWeight.Medium,
-                                    maxLines = 1
-                                )
-                            }
-                        }
-                        Box(modifier = Modifier.weight(1f)) {
-                            Button(
-                                onClick = onNavigateToUploadQueue,
+                        if (pendingUploads > 0) {
+                            Surface(
                                 modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(56.dp),
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = AppColors.Surface,
-                                    contentColor = AppColors.Light
-                                ),
-                                shape = RoundedCornerShape(16.dp),
-                                contentPadding = PaddingValues(horizontal = 4.dp, vertical = 8.dp)
+                                    .align(Alignment.TopEnd)
+                                    .offset(x = 8.dp, y = (-8).dp),
+                                color = AppColors.Error,
+                                shape = RoundedCornerShape(12.dp)
                             ) {
-                                Column(
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                    verticalArrangement = Arrangement.Center
-                                ) {
-                                    Icon(
-                                        Icons.Default.Upload,
-                                        contentDescription = "Uploads",
-                                        modifier = Modifier.size(20.dp)
-                                    )
-                                    Spacer(modifier = Modifier.height(4.dp))
-                                    Text(
-                                        "Uploads",
-                                        fontSize = 13.sp,
-                                        fontWeight = FontWeight.Medium,
-                                        maxLines = 1
-                                    )
-                                }
-                            }
-                            if (pendingUploads > 0) {
-                                Surface(
-                                    modifier = Modifier
-                                        .align(Alignment.TopEnd)
-                                        .offset(x = 8.dp, y = (-8).dp),
-                                    color = AppColors.Error,
-                                    shape = RoundedCornerShape(12.dp)
-                                ) {
-                                    Text(
-                                        text = pendingUploads.toString(),
-                                        color = AppColors.Light,
-                                        fontSize = 12.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                                    )
-                                }
+                                Text(
+                                    text = pendingUploads.toString(),
+                                    color = AppColors.Light,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                )
                             }
                         }
                     }
                 }
-            } else {
-                Column(modifier = Modifier.fillMaxWidth()) {
+
+                Button(
+                    onClick = onStartRecording,
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(56.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = AppColors.Primary),
+                    shape = RoundedCornerShape(16.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.PlayArrow,
+                        contentDescription = "Start",
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Start Recording",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 1
+                    )
+                }
+            }
+        } else {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                Button(
+                    onClick = onStartRecording,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(64.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = AppColors.Primary),
+                    shape = RoundedCornerShape(16.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.PlayArrow,
+                        contentDescription = "Start",
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Start Recording",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Quick Actions
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
                     Button(
-                        onClick = onStartRecording,
+                        onClick = onNavigateToHealth,
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .height(64.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = AppColors.Primary),
-                        shape = RoundedCornerShape(16.dp)
+                            .weight(1f)
+                            .height(56.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = AppColors.Surface,
+                            contentColor = AppColors.Light
+                        ),
+                        shape = RoundedCornerShape(16.dp),
+                        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 8.dp)
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.PlayArrow,
-                            contentDescription = "Start",
-                            modifier = Modifier.size(24.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "Start Recording",
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.SemiBold
-                        )
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
+                        ) {
+                            Icon(
+                                Icons.Default.Settings,
+                                contentDescription = "Health",
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                "Health",
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Medium,
+                                maxLines = 1
+                            )
+                        }
                     }
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    // Quick Actions
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    Button(
+                        onClick = onNavigateToHistory,
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(56.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = AppColors.Surface,
+                            contentColor = AppColors.Light
+                        ),
+                        shape = RoundedCornerShape(16.dp),
+                        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 8.dp)
                     ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
+                        ) {
+                            Icon(
+                                Icons.Default.History,
+                                contentDescription = "History",
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                "History",
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Medium,
+                                maxLines = 1
+                            )
+                        }
+                    }
+                    Box(modifier = Modifier.weight(1f)) {
                         Button(
-                            onClick = onNavigateToHealth,
+                            onClick = onNavigateToUploadQueue,
                             modifier = Modifier
-                                .weight(1f)
+                                .fillMaxWidth()
                                 .height(56.dp),
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = AppColors.Surface,
@@ -420,96 +465,34 @@ fun DashboardScreen(
                                 verticalArrangement = Arrangement.Center
                             ) {
                                 Icon(
-                                    Icons.Default.Settings,
-                                    contentDescription = "Health",
+                                    Icons.Default.Upload,
+                                    contentDescription = "Uploads",
                                     modifier = Modifier.size(20.dp)
                                 )
                                 Spacer(modifier = Modifier.height(4.dp))
                                 Text(
-                                    "Health",
+                                    "Uploads",
                                     fontSize = 13.sp,
                                     fontWeight = FontWeight.Medium,
                                     maxLines = 1
                                 )
                             }
                         }
-                        Button(
-                            onClick = onNavigateToHistory,
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(56.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = AppColors.Surface,
-                                contentColor = AppColors.Light
-                            ),
-                            shape = RoundedCornerShape(16.dp),
-                            contentPadding = PaddingValues(horizontal = 4.dp, vertical = 8.dp)
-                        ) {
-                            Column(
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.Center
-                            ) {
-                                Icon(
-                                    Icons.Default.History,
-                                    contentDescription = "History",
-                                    modifier = Modifier.size(20.dp)
-                                )
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Text(
-                                    "History",
-                                    fontSize = 13.sp,
-                                    fontWeight = FontWeight.Medium,
-                                    maxLines = 1
-                                )
-                            }
-                        }
-                        Box(modifier = Modifier.weight(1f)) {
-                            Button(
-                                onClick = onNavigateToUploadQueue,
+                        if (pendingUploads > 0) {
+                            Surface(
                                 modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(56.dp),
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = AppColors.Surface,
-                                    contentColor = AppColors.Light
-                                ),
-                                shape = RoundedCornerShape(16.dp),
-                                contentPadding = PaddingValues(horizontal = 4.dp, vertical = 8.dp)
+                                    .align(Alignment.TopEnd)
+                                    .offset(x = 8.dp, y = (-8).dp),
+                                color = AppColors.Error,
+                                shape = RoundedCornerShape(12.dp)
                             ) {
-                                Column(
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                    verticalArrangement = Arrangement.Center
-                                ) {
-                                    Icon(
-                                        Icons.Default.Upload,
-                                        contentDescription = "Uploads",
-                                        modifier = Modifier.size(20.dp)
-                                    )
-                                    Spacer(modifier = Modifier.height(4.dp))
-                                    Text(
-                                        "Uploads",
-                                        fontSize = 13.sp,
-                                        fontWeight = FontWeight.Medium,
-                                        maxLines = 1
-                                    )
-                                }
-                            }
-                            if (pendingUploads > 0) {
-                                Surface(
-                                    modifier = Modifier
-                                        .align(Alignment.TopEnd)
-                                        .offset(x = 8.dp, y = (-8).dp),
-                                    color = AppColors.Error,
-                                    shape = RoundedCornerShape(12.dp)
-                                ) {
-                                    Text(
-                                        text = pendingUploads.toString(),
-                                        color = AppColors.Light,
-                                        fontSize = 12.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                                    )
-                                }
+                                Text(
+                                    text = pendingUploads.toString(),
+                                    color = AppColors.Light,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                )
                             }
                         }
                     }
@@ -561,4 +544,19 @@ fun SensorStatusRow(
             )
         }
     }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun DashboardScreenPreview() {
+    DashboardScreen(
+        vehicleId = "123",
+        sensorStatus = SensorStatus(camera = true, gps = true, imu = true, bluetooth = true, storage = 85),
+        isWifiConnected = true,
+        pendingUploads = 5,
+        onStartRecording = {},
+        onNavigateToHealth = {},
+        onNavigateToHistory = {},
+        onNavigateToUploadQueue = {}
+    )
 }
