@@ -40,7 +40,7 @@ import java.util.Locale
 
 data class RecordingStatus(
         val isRecording: Boolean = false,
-        val tripId: Long = 0L,
+        val tripId: Long = 0L, // 0L is safe sentinel value; actual trip IDs are yyyyMMddHHmmss (>= 19700101000000)
         val elapsedTimeMs: Long = 0,
         val distance: Double = 0.0,
         val isCameraRecording: Boolean = false
