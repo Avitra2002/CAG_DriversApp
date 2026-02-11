@@ -11,6 +11,7 @@ import android.os.Build
 import android.os.IBinder
 import android.os.PowerManager
 import android.util.Log
+import android.os.Build as AndroidBuild
 import androidx.core.app.NotificationCompat
 import androidx.lifecycle.LifecycleService
 import com.roaddefect.driverapp.MainActivity
@@ -31,6 +32,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import org.json.JSONObject
 import java.io.FileWriter
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -136,6 +138,22 @@ class RecordingService : LifecycleService() {
         acquireWakeLock()
 
         startTimeMs = System.currentTimeMillis()
+        val metadataFile = FileManager.getMetadataFile(this, tripId)
+        try {
+            val metaJson = JSONObject().apply {
+                put("video_start_epoch_ms", System.currentTimeMillis())
+                put("device_info", JSONObject().apply {
+                    put("model", "${AndroidBuild.MANUFACTURER} ${AndroidBuild.MODEL}")
+                })
+                put("app_version", applicationContext.packageManager
+                    .getPackageInfo(applicationContext.packageName, 0).versionName ?: "1.0.0")
+            }
+            metadataFile.writeText(metaJson.toString(2))
+            android.util.Log.i("TripSummaryScreen", "Created trip_meta.json")
+        } catch (e: Exception) {
+            android.util.Log.e("TripSummaryScreen", "Failed to create trip_meta.json", e)
+        }
+
 
         // Start GPS tracking
         val gpsFile = FileManager.getGPSFile(this, tripId)

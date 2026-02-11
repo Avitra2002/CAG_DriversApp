@@ -9,8 +9,16 @@ import android.os.Build
 import android.os.IBinder
 import android.util.Log
 import androidx.core.app.NotificationCompat
+import com.amazonaws.auth.CognitoCachingCredentialsProvider
+import com.amazonaws.mobileconnectors.s3.transferutility.TransferListener
+import com.amazonaws.mobileconnectors.s3.transferutility.TransferState
+import com.amazonaws.mobileconnectors.s3.transferutility.TransferUtility
+import com.amazonaws.regions.Region
+import com.amazonaws.regions.Regions
+import com.amazonaws.services.s3.AmazonS3Client
 import com.roaddefect.driverapp.R
 import java.io.File
+import java.util.concurrent.ConcurrentLinkedQueue
 
 class S3UploadService : Service() {
 
@@ -22,24 +30,81 @@ class S3UploadService : Service() {
         const val ACTION_UPLOAD_COMPLETE = "com.roaddefect.driverapp.UPLOAD_COMPLETE"
         const val ACTION_UPLOAD_FAILED = "com.roaddefect.driverapp.UPLOAD_FAILED"
 
+        // AWS Config - Extracted from amplifyconfiguration.json
+        private const val COGNITO_POOL_ID = "ap-southeast-1:a6eaaf29-5595-413c-93a0-a9bb66195ffc"
+        private const val BUCKET_NAME = "road-safety-dashboard-dev-storag-rawbucket0c3ee094-06krq7xkrooi"
+        private val REGION = Regions.AP_SOUTHEAST_1
+
         private const val CHANNEL_ID = "upload_channel"
         private const val NOTIF_ID = 1001
     }
+
+    private data class UploadTask(
+        val file: File,
+        val s3Key: String,
+        val tripId: String
+    )
+
+    private val uploadQueue = ConcurrentLinkedQueue<UploadTask>()
+    @Volatile private var isUploading = false
+    private var transferUtility: TransferUtility? = null
 
     override fun onCreate() {
         super.onCreate()
         Log.i("S3UploadService", "=== SERVICE CREATED ===")
         ensureChannel()
-        startForeground(NOTIF_ID, buildNotif("Preparing upload…"))
-        Log.i("S3UploadService", "Foreground service started")
+        startForeground(NOTIF_ID, buildNotif("Preparing upload service…"))
+
+        initS3Client()
+    }
+
+    private fun initS3Client() {
+        try {
+            val credentialsProvider = CognitoCachingCredentialsProvider(
+                applicationContext,
+                COGNITO_POOL_ID,
+                REGION
+            )
+
+            val s3Client = AmazonS3Client(credentialsProvider)
+            s3Client.setRegion(Region.getRegion(REGION))
+
+            // Attempt to build TransferUtility
+            try {
+                transferUtility = TransferUtility.builder()
+                    .context(applicationContext)
+                    .s3Client(s3Client)
+                    .build()
+            } catch (e: Exception) {
+                if (e.message?.contains("awstransfer already exists") == true || e.cause?.message?.contains("awstransfer already exists") == true) {
+                    Log.e("S3UploadService", "Database schema conflict detected. Deleting old transfer database and retrying.", e)
+                    // Delete the old database to fix the schema conflict
+                    applicationContext.deleteDatabase("awstransfer.db")
+
+                    // Retry initialization
+                    transferUtility = TransferUtility.builder()
+                        .context(applicationContext)
+                        .s3Client(s3Client)
+                        .build()
+                } else {
+                    throw e
+                }
+            }
+
+            Log.i("S3UploadService", "S3 Client and TransferUtility initialized")
+        } catch (e: Exception) {
+            Log.e("S3UploadService", "Error initializing S3 Client or TransferUtility", e)
+            // If initialization fails, we cannot proceed with uploads.
+            // Notifications or broadcasts should reflect this fatal error.
+        }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         Log.i("S3UploadService", "=== onStartCommand called ===")
-        Log.i("S3UploadService", "Intent: $intent")
 
         if (intent?.action == ACTION_STOP) {
-            Log.i("S3UploadService", "Stopping upload due to geofence exit")
+            Log.i("S3UploadService", "Stopping upload due to request")
+            uploadQueue.clear()
             stopSelf()
             return START_NOT_STICKY
         }
@@ -48,86 +113,103 @@ class S3UploadService : Service() {
         val s3Key = intent?.getStringExtra(EXTRA_S3_KEY)
         val tripId = intent?.getStringExtra(EXTRA_TRIP_ID)
 
-        Log.i("S3UploadService", "filePath: $filePath")
-        Log.i("S3UploadService", "s3Key: $s3Key")
-        Log.i("S3UploadService", "tripId: $tripId")
-
-        if (filePath.isNullOrBlank() || s3Key.isNullOrBlank()) {
-            Log.e("S3UploadService", "Missing filePath or s3Key")
-            stopSelf()
-            return START_NOT_STICKY
+        if (!filePath.isNullOrBlank() && !s3Key.isNullOrBlank() && !tripId.isNullOrBlank()) {
+            val file = File(filePath)
+            if (file.exists()) {
+                val task = UploadTask(file, s3Key, tripId)
+                uploadQueue.add(task)
+                Log.i("S3UploadService", "Added to queue: ${file.name}. Queue size: ${uploadQueue.size}")
+                processNext()
+            } else {
+                Log.e("S3UploadService", "File not found: $filePath")
+            }
+        } else {
+            Log.w("S3UploadService", "Invalid intent extras or missing data")
         }
 
-        val file = File(filePath)
-        Log.i("S3UploadService", "File exists: ${file.exists()}, path: ${file.absolutePath}")
-
-        if (!file.exists()) {
-            Log.e("S3UploadService", "File not found: $filePath")
-            updateNotif("File not found")
-            stopSelf()
-            return START_NOT_STICKY
-        }
-
-        Log.i("S3UploadService", "Starting upload for file: ${file.name}, size: ${file.length()} bytes")
-        uploadFile(file, s3Key, tripId)
-        return START_NOT_STICKY
+        return START_STICKY
     }
 
-    private fun uploadFile(file: File, key: String, tripId: String?) {
-        Log.i("S3UploadService", "=== uploadFile called ===")
-        Log.i("S3UploadService", "File: ${file.absolutePath}, Key: $key")
+    private fun processNext() {
+        if (isUploading) return
+
+        val task = uploadQueue.poll()
+        if (task == null) {
+            Log.i("S3UploadService", "Queue empty, all uploads finished.")
+            updateNotif("All uploads complete")
+            stopSelf()
+            return
+        }
+
+        isUploading = true
+        performUpload(task)
+    }
+
+    private fun performUpload(task: UploadTask) {
+        val (file, key, tripId) = task
+        Log.i("S3UploadService", "Starting upload: ${file.name} -> $key")
         updateNotif("Uploading ${file.name}…")
 
-        try {
-            val options = com.amplifyframework.storage.options.StorageUploadFileOptions.defaultInstance()
-            Log.i("S3UploadService", "Calling Amplify.Storage.uploadFile...")
-
-            com.amplifyframework.core.Amplify.Storage.uploadFile(
-                key,
-                file,
-                options,
-                { result ->
-                    Log.i("S3UploadService", "✅ Upload success: ${result.key}")
-                    updateNotif("Upload complete: ${file.name}")
-
-                    // Send broadcast for upload completion
-                    tripId?.let {
-                        val successIntent = Intent(ACTION_UPLOAD_COMPLETE).apply {
-                            setPackage(packageName)  // Make it an explicit broadcast
-                            putExtra(EXTRA_TRIP_ID, it)
-                            putExtra(EXTRA_S3_KEY, key)
-                        }
-                        sendBroadcast(successIntent)
-                        Log.i("S3UploadService", "Broadcast sent: Upload complete for trip $it")
-                    }
-
-                    stopSelf()
-                },
-                { error ->
-                    Log.e("S3UploadService", "❌ Upload failed: ${error.message}", error)
-                    updateNotif("Upload failed: ${file.name}")
-
-                    // Send broadcast for upload failure
-                    tripId?.let {
-                        val failIntent = Intent(ACTION_UPLOAD_FAILED).apply {
-                            setPackage(packageName)  // Make it an explicit broadcast
-                            putExtra(EXTRA_TRIP_ID, it)
-                            putExtra(EXTRA_S3_KEY, key)
-                            putExtra("error", error.message)
-                        }
-                        sendBroadcast(failIntent)
-                        Log.i("S3UploadService", "Broadcast sent: Upload failed for trip $it")
-                    }
-
-                    stopSelf()
-                }
-            )
-            Log.i("S3UploadService", "Amplify.Storage.uploadFile call completed")
-        } catch (e: Exception) {
-            Log.e("S3UploadService", "Exception in uploadFile", e)
-            updateNotif("Upload error: ${e.message}")
-            stopSelf()
+        val utility = transferUtility
+        if (utility == null) {
+             Log.e("S3UploadService", "TransferUtility is null, cannot upload")
+             sendFailureBroadcast(tripId, key, "S3 Client not initialized")
+             isUploading = false
+             processNext()
+             return
         }
+
+        val observer = utility.upload(BUCKET_NAME, key, file)
+
+        observer.setTransferListener(object : TransferListener {
+            override fun onStateChanged(id: Int, state: TransferState?) {
+                Log.d("S3UploadService", "Transfer state changed: $state")
+                if (state == TransferState.COMPLETED) {
+                    Log.i("S3UploadService", "✅ Upload success: $key")
+                    sendSuccessBroadcast(tripId, key)
+                    isUploading = false
+                    processNext()
+                } else if (state == TransferState.FAILED) {
+                    Log.e("S3UploadService", "❌ Upload failed state for $key")
+                     // observer.cleanTransferListener()
+                     // TransferUtility persists uploads in DB, we might need to rely on that or handle retries.
+                     // For now, treat as fail.
+                    sendFailureBroadcast(tripId, key, "Transfer State: FAILED")
+                    isUploading = false
+                    processNext()
+                }
+            }
+
+            override fun onProgressChanged(id: Int, bytesCurrent: Long, bytesTotal: Long) {
+                 // Optional: update notification progress
+            }
+
+            override fun onError(id: Int, ex: java.lang.Exception?) {
+                Log.e("S3UploadService", "❌ Upload Exception: ${ex?.message}", ex)
+                sendFailureBroadcast(tripId, key, ex?.message ?: "Unknown Error")
+                isUploading = false
+                processNext()
+            }
+        })
+    }
+
+    private fun sendSuccessBroadcast(tripId: String, key: String) {
+        val successIntent = Intent(ACTION_UPLOAD_COMPLETE).apply {
+            setPackage(packageName)
+            putExtra(EXTRA_TRIP_ID, tripId)
+            putExtra(EXTRA_S3_KEY, key)
+        }
+        sendBroadcast(successIntent)
+    }
+
+    private fun sendFailureBroadcast(tripId: String, key: String, error: String) {
+        val failIntent = Intent(ACTION_UPLOAD_FAILED).apply {
+            setPackage(packageName)
+            putExtra(EXTRA_TRIP_ID, tripId)
+            putExtra(EXTRA_S3_KEY, key)
+            putExtra("error", error)
+        }
+        sendBroadcast(failIntent)
     }
 
     private fun ensureChannel() {
@@ -157,3 +239,5 @@ class S3UploadService : Service() {
 
     override fun onBind(intent: Intent?): IBinder? = null
 }
+
+

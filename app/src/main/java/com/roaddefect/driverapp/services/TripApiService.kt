@@ -106,7 +106,7 @@ class TripApiService {
 
 
     suspend fun completeTrip(
-        tripId: Int,
+        tripId: String,
         videoKey: String,
         gpsKey: String,
         imuKey: String,

@@ -91,7 +91,7 @@ fun TripSummaryScreen(
                                     val imuSampleCount = imuFile.readLines().size - 1 // Subtract header
 
                                     val completeResult = apiService.completeTrip(
-                                        tripId = trip.id.toIntOrNull() ?: 0,
+                                        tripId = trip.id,
                                         videoKey = "trips/${trip.id}/video.mp4",
                                         gpsKey = "trips/${trip.id}/gps_data.xml",
                                         imuKey = "trips/${trip.id}/imu_data.json",
@@ -599,6 +599,16 @@ fun TripSummaryScreen(
                                 }
                             }
 
+                            if(!gpsEsp32File.exists()) {
+                                try {
+                                    gpsEsp32File.createNewFile()
+                                    imuEsp32File.writeText("timestamp,accel_x,accel_y,accel_z,gyro_x,gyro_y,gyro_z\n")
+                                    android.util.Log.i("TripSummaryScreen", "Created empty ESP32 GPX file")
+                                } catch (e: Exception) {
+                                    android.util.Log.e("TripSummaryScreen", "Failed to create ESP32 GPX file", e)
+                                }
+                            }
+
                             uploadedFilesCount = 0
 
                             // Upload video
@@ -645,11 +655,11 @@ fun TripSummaryScreen(
                             // Upload ESP32 IMU data (always exists now)
                             android.util.Log.i("TripSummaryScreen", "Starting ESP32 IMU upload service...")
                             val imuEsp32Intent = Intent(context, S3UploadService::class.java).apply {
-                                putExtra(S3UploadService.EXTRA_FILE_PATH, imuFile.absolutePath)
+                                putExtra(S3UploadService.EXTRA_FILE_PATH, imuEsp32File.absolutePath)
                                 putExtra(S3UploadService.EXTRA_S3_KEY, "trips/${s3TripId}/imu_esp32.csv")
                                 putExtra(S3UploadService.EXTRA_TRIP_ID, trip.id)
                             }
-                            ContextCompat.startForegroundService(context, imuIntent)
+                            ContextCompat.startForegroundService(context, imuEsp32Intent)
 
                             // Upload trip_meta.json
                             if (metaFile.exists()) {

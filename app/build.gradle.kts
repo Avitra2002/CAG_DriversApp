@@ -102,6 +102,11 @@ dependencies {
     implementation("com.amplifyframework:aws-auth-cognito:2.16.0")
     implementation("com.amplifyframework:aws-storage-s3:2.16.0")
 
+    // AWS S3 SDK (Direct)
+    implementation("com.amazonaws:aws-android-sdk-s3:2.73.0")
+    implementation("com.amazonaws:aws-android-sdk-mobile-client:2.73.0")
+    implementation("com.amazonaws:aws-android-sdk-auth-core:2.73.0")
+
     // HTTP Client for API calls
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")

@@ -16,6 +16,7 @@ import kotlinx.coroutines.launch
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
+import kotlin.text.format
 
 class AppViewModel(application: Application) : AndroidViewModel(application) {
     private val context = application.applicationContext
@@ -182,7 +183,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         val timeFormat = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
         val now = Date()
 
-        val finalTripId = tripId ?: "trip_${SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(now)}"
+        val finalTripId = tripId ?: SimpleDateFormat("yyyyMMddHHmmss", Locale.getDefault()).format(now).toLong()
 
         val newTrip = Trip(
             id = finalTripId,
