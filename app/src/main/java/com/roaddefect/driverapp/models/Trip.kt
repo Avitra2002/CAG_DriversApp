@@ -1,7 +1,7 @@
 package com.roaddefect.driverapp.models
 
 data class Trip(
-    val id: String,
+    val id: Long,
     val date: String,
     val time: String,
     val duration: Int, // in seconds

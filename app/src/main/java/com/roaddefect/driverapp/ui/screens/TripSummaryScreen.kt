@@ -66,7 +66,7 @@ fun TripSummaryScreen(
                 android.util.Log.i("TripSummaryScreen", "Broadcast received: ${intent?.action}")
                 when (intent?.action) {
                     S3UploadService.ACTION_UPLOAD_COMPLETE -> {
-                        val tripId = intent.getStringExtra(S3UploadService.EXTRA_TRIP_ID)
+                        val tripId = intent.getLongExtra(S3UploadService.EXTRA_TRIP_ID, 0L)
                         android.util.Log.i("TripSummaryScreen", "Received upload complete for trip: $tripId, current trip: ${trip.id}")
                         if (tripId == trip.id) {
                             uploadedFilesCount++
@@ -118,7 +118,7 @@ fun TripSummaryScreen(
                         }
                     }
                     S3UploadService.ACTION_UPLOAD_FAILED -> {
-                        val tripId = intent.getStringExtra(S3UploadService.EXTRA_TRIP_ID)
+                        val tripId = intent.getLongExtra(S3UploadService.EXTRA_TRIP_ID, 0L)
                         if (tripId == trip.id) {
                             android.util.Log.e("TripSummaryScreen", "Upload failed for trip $tripId")
                             viewModel.updateTrip(trip.copy(uploadStatus = UploadStatus.FAILED))
@@ -548,7 +548,7 @@ fun TripSummaryScreen(
                                 // TODO: Store apiResponse.trip_id in trip model for later use in complete API call
                             }
                             val expectedKeys = startResult.getOrNull()?.expected_keys
-                            val s3TripId = startResult.getOrNull()?.trip_id?.toString() ?: trip.id
+                            val s3TripId = startResult.getOrNull()?.trip_id?.toString() ?: trip.id.toString()
 
                             // Step 2: Upload all files from trip directory
                             val videoFile = FileManager.getVideoFile(context, trip.id)
