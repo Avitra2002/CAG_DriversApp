@@ -96,6 +96,7 @@ class RecordingService : LifecycleService() {
         super.onStartCommand(intent, flags, startId)
         when (intent?.action) {
             ACTION_START_RECORDING -> {
+                // Trip ID is in yyyyMMddHHmmss format (always >= 19700101000000), so 0L is safe as sentinel
                 val tripId = intent.getLongExtra(EXTRA_TRIP_ID, 0L)
                 if (tripId != 0L) {
                     startCameraRecording(tripId)

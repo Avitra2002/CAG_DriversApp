@@ -66,6 +66,7 @@ fun TripSummaryScreen(
                 android.util.Log.i("TripSummaryScreen", "Broadcast received: ${intent?.action}")
                 when (intent?.action) {
                     S3UploadService.ACTION_UPLOAD_COMPLETE -> {
+                        // Trip ID is in yyyyMMddHHmmss format (always >= 19700101000000), so 0L is safe as sentinel
                         val tripId = intent.getLongExtra(S3UploadService.EXTRA_TRIP_ID, 0L)
                         android.util.Log.i("TripSummaryScreen", "Received upload complete for trip: $tripId, current trip: ${trip.id}")
                         if (tripId == trip.id) {
@@ -118,6 +119,7 @@ fun TripSummaryScreen(
                         }
                     }
                     S3UploadService.ACTION_UPLOAD_FAILED -> {
+                        // Trip ID is in yyyyMMddHHmmss format (always >= 19700101000000), so 0L is safe as sentinel
                         val tripId = intent.getLongExtra(S3UploadService.EXTRA_TRIP_ID, 0L)
                         if (tripId == trip.id) {
                             android.util.Log.e("TripSummaryScreen", "Upload failed for trip $tripId")
