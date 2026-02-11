@@ -100,7 +100,7 @@ class RecordingService : LifecycleService() {
                 if (tripId != 0L) {
                     startCameraRecording(tripId)
                 } else {
-                    Log.e("RecordingService", "Invalid trip ID received: $tripId")
+                    Log.e("RecordingService", "No trip ID provided in intent - recording cannot start")
                 }
             }
             ACTION_STOP_RECORDING -> {

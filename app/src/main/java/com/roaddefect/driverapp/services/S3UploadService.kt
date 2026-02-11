@@ -111,7 +111,7 @@ class S3UploadService : Service() {
 
         val filePath = intent?.getStringExtra(EXTRA_FILE_PATH)
         val s3Key = intent?.getStringExtra(EXTRA_S3_KEY)
-        val tripId = intent?.getLongExtra(EXTRA_TRIP_ID, 0L) ?: 0L
+        val tripId = intent?.getLongExtra(EXTRA_TRIP_ID, 0L)
 
         if (!filePath.isNullOrBlank() && !s3Key.isNullOrBlank() && tripId != 0L) {
             val file = File(filePath)
