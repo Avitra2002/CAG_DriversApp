@@ -57,7 +57,7 @@ fun TripSummaryScreen(
     val gatesReady = wifiGateStatus.gatePassed && geofenceStatus.isInsideGeofence
     var uploadTriggered by remember { mutableStateOf(false) }
     var uploadedFilesCount by remember { mutableStateOf(0) }
-    val totalFilesToUpload = 3 // video, GPS, IMU
+    val totalFilesToUpload = 6 // video, GPS, IMU
 
     // Broadcast receiver for upload completion
     DisposableEffect(trip.id) {
@@ -93,8 +93,8 @@ fun TripSummaryScreen(
                                     val completeResult = apiService.completeTrip(
                                         tripId = trip.id.toIntOrNull() ?: 0,
                                         videoKey = "trips/${trip.id}/video.mp4",
-                                        gpsKey = "trips/${trip.id}/gps_data.csv",
-                                        imuKey = "trips/${trip.id}/imu_data.csv",
+                                        gpsKey = "trips/${trip.id}/gps_data.xml",
+                                        imuKey = "trips/${trip.id}/imu_data.json",
                                         videoSize = videoFile.length(),
                                         videoDuration = (trip.duration / 1000).toInt(), // Convert ms to seconds
                                         gpsPointCount = gpsPointCount.coerceAtLeast(0),
@@ -137,9 +137,10 @@ fun TripSummaryScreen(
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             context.registerReceiver(receiver, filter, Context.RECEIVER_NOT_EXPORTED)
-        } else {
-            context.registerReceiver(receiver, filter)
         }
+//        else {
+//            context.registerReceiver(receiver, filter)
+//        }
 
         onDispose {
             context.unregisterReceiver(receiver)
@@ -546,13 +547,23 @@ fun TripSummaryScreen(
                                 android.util.Log.i("TripSummaryScreen", "Expected S3 keys: ${apiResponse?.expected_keys}")
                                 // TODO: Store apiResponse.trip_id in trip model for later use in complete API call
                             }
+                            val expectedKeys = startResult.getOrNull()?.expected_keys
+                            val s3TripId = startResult.getOrNull()?.trip_id?.toString() ?: trip.id
 
                             // Step 2: Upload all files from trip directory
                             val videoFile = FileManager.getVideoFile(context, trip.id)
-                            val gpsFile = FileManager.getGPSFile(context, trip.id)
+                            val gpsFile = FileManager.getGPSGpxFile(context, trip.id)
                             val imuFile = FileManager.getIMUFile(context, trip.id)
+                            val gpsEsp32File = FileManager.getESP32GpsGpxFile(context, trip.id)
+                            val imuEsp32File = FileManager.getESP32ImuFile(context, trip.id)
+                            val metaFile = FileManager.getMetadataFile(context, trip.id)
 
                             android.util.Log.i("TripSummaryScreen", "Upload button clicked!")
+
+                            android.util.Log.i("TripSummaryScreen", "Trip ID: ${trip.id}")
+                            android.util.Log.i("TripSummaryScreen", "Video file path: ${videoFile.absolutePath}")
+                            android.util.Log.i("TripSummaryScreen", "GPS file path: ${gpsFile.absolutePath}")
+
                             android.util.Log.i("TripSummaryScreen", "Video file exists: ${videoFile.exists()}")
                             android.util.Log.i("TripSummaryScreen", "GPS file exists: ${gpsFile.exists()}")
                             android.util.Log.i("TripSummaryScreen", "IMU file exists: ${imuFile.exists()}")
@@ -578,6 +589,16 @@ fun TripSummaryScreen(
                                 }
                             }
 
+                            if(!imuEsp32File.exists()) {
+                                try {
+                                    imuEsp32File.createNewFile()
+                                    imuEsp32File.writeText("timestamp,accel_x,accel_y,accel_z,gyro_x,gyro_y,gyro_z\n")
+                                    android.util.Log.i("TripSummaryScreen", "Created empty ESP32 IMU file")
+                                } catch (e: Exception) {
+                                    android.util.Log.e("TripSummaryScreen", "Failed to create ESP32 IMU file", e)
+                                }
+                            }
+
                             uploadedFilesCount = 0
 
                             // Upload video
@@ -585,29 +606,61 @@ fun TripSummaryScreen(
                                 android.util.Log.i("TripSummaryScreen", "Starting video upload service...")
                                 val videoIntent = Intent(context, S3UploadService::class.java).apply {
                                     putExtra(S3UploadService.EXTRA_FILE_PATH, videoFile.absolutePath)
-                                    putExtra(S3UploadService.EXTRA_S3_KEY, "trips/${trip.id}/video.mp4")
+//                                    putExtra(S3UploadService.EXTRA_S3_KEY, "trips/${trip.id}/video.mp4")
+                                    putExtra(S3UploadService.EXTRA_S3_KEY, expectedKeys?.video_key)
                                     putExtra(S3UploadService.EXTRA_TRIP_ID, trip.id)
                                 }
                                 ContextCompat.startForegroundService(context, videoIntent)
                             }
 
-                            // Upload GPS data (always exists now)
-                            android.util.Log.i("TripSummaryScreen", "Starting GPS upload service...")
+                            // Upload GPS GPX data (always exists now)
+                            android.util.Log.i("TripSummaryScreen", "Starting GPX upload service...")
                             val gpsIntent = Intent(context, S3UploadService::class.java).apply {
                                 putExtra(S3UploadService.EXTRA_FILE_PATH, gpsFile.absolutePath)
-                                putExtra(S3UploadService.EXTRA_S3_KEY, "trips/${trip.id}/gps_data.csv")
+//                                putExtra(S3UploadService.EXTRA_S3_KEY, "trips/${trip.id}/gps_data.csv")
+                                putExtra(S3UploadService.EXTRA_S3_KEY, expectedKeys?.gps_key)
                                 putExtra(S3UploadService.EXTRA_TRIP_ID, trip.id)
                             }
                             ContextCompat.startForegroundService(context, gpsIntent)
+
+                            // Upload ESP32 GPS GPX data (always exists now)
+                            android.util.Log.i("TripSummaryScreen", "Starting ESP32 GPX upload service...")
+                            val gpsEsp32Intent = Intent(context, S3UploadService::class.java).apply {
+                                putExtra(S3UploadService.EXTRA_FILE_PATH, gpsEsp32File.absolutePath)
+//                                putExtra(S3UploadService.EXTRA_S3_KEY, "trips/${trip.id}/esp32_gps.csv")
+                                putExtra(S3UploadService.EXTRA_S3_KEY, "trips/${s3TripId}/esp32_gps.gpx")
+                                putExtra(S3UploadService.EXTRA_TRIP_ID, trip.id)
+                            }
+                            ContextCompat.startForegroundService(context, gpsEsp32Intent)
 
                             // Upload IMU data (always exists now)
                             android.util.Log.i("TripSummaryScreen", "Starting IMU upload service...")
                             val imuIntent = Intent(context, S3UploadService::class.java).apply {
                                 putExtra(S3UploadService.EXTRA_FILE_PATH, imuFile.absolutePath)
-                                putExtra(S3UploadService.EXTRA_S3_KEY, "trips/${trip.id}/imu_data.csv")
+                                putExtra(S3UploadService.EXTRA_S3_KEY, expectedKeys?.imu_key)
                                 putExtra(S3UploadService.EXTRA_TRIP_ID, trip.id)
                             }
                             ContextCompat.startForegroundService(context, imuIntent)
+
+                            // Upload ESP32 IMU data (always exists now)
+                            android.util.Log.i("TripSummaryScreen", "Starting ESP32 IMU upload service...")
+                            val imuEsp32Intent = Intent(context, S3UploadService::class.java).apply {
+                                putExtra(S3UploadService.EXTRA_FILE_PATH, imuFile.absolutePath)
+                                putExtra(S3UploadService.EXTRA_S3_KEY, "trips/${s3TripId}/imu_esp32.csv")
+                                putExtra(S3UploadService.EXTRA_TRIP_ID, trip.id)
+                            }
+                            ContextCompat.startForegroundService(context, imuIntent)
+
+                            // Upload trip_meta.json
+                            if (metaFile.exists()) {
+                                android.util.Log.i("TripSummaryScreen", "Starting trip_meta upload service...")
+                                val metaIntent = Intent(context, S3UploadService::class.java).apply {
+                                    putExtra(S3UploadService.EXTRA_FILE_PATH, metaFile.absolutePath)
+                                    putExtra(S3UploadService.EXTRA_S3_KEY, "trips/${trip.id}/trip_meta.json")
+                                    putExtra(S3UploadService.EXTRA_TRIP_ID, trip.id)
+                                }
+                                ContextCompat.startForegroundService(context, metaIntent)
+                            }
 
                             // Update trip status
                             viewModel.updateTrip(trip.copy(uploadStatus = UploadStatus.UPLOADING))

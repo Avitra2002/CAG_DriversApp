@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import java.io.File
 import java.io.FileWriter
+import java.time.Instant
 
 data class IMUData(
     val timestamp: Long,
@@ -68,10 +69,13 @@ class IMUSensorManager(private val context: Context) {
             // Log to file if recording
             if (_status.value.isRecording) {
                 try {
-                    val line = "${imuData.timestamp},${imuData.accelerometerX},${imuData.accelerometerY}," +
+                    // Will be UTC, not local time
+                    val isoTimestamp = Instant.ofEpochMilli(imuData.timestamp).toString()
+                    val line = "$isoTimestamp,${imuData.accelerometerX},${imuData.accelerometerY}," +
                             "${imuData.accelerometerZ},${imuData.gyroscopeX},${imuData.gyroscopeY}," +
                             "${imuData.gyroscopeZ}\n"
                     fileWriter?.write(line)
+                    fileWriter?.flush()
                 } catch (e: Exception) {
                     Log.e("IMUSensorManager", "Failed to write IMU data", e)
                 }

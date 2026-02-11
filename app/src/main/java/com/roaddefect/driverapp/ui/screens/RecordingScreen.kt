@@ -315,6 +315,7 @@ fun RecordingScreen(viewModel: AppViewModel, activity: MainActivity) {
                                                                                 action =
                                                                                         RecordingService
                                                                                                 .ACTION_START_RECORDING
+                                                                                putExtra(RecordingService.EXTRA_TRIP_ID, trip.id)
                                                                         }
                                                         context.startService(intent)
 
@@ -657,4 +658,3 @@ fun ESP32WarningBannerCompact() {
                 }
         }
 }
-

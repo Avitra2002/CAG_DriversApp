@@ -94,7 +94,8 @@ class RecordingService : LifecycleService() {
         super.onStartCommand(intent, flags, startId)
         when (intent?.action) {
             ACTION_START_RECORDING -> {
-                startCameraRecording()
+                val tripId = intent.getStringExtra(EXTRA_TRIP_ID) ?: generateTripId()
+                startCameraRecording(tripId)
             }
             ACTION_STOP_RECORDING -> {
                 stopRecording()
@@ -123,7 +124,7 @@ class RecordingService : LifecycleService() {
      * Start camera recording after preview has been unbound.
      * This should be called after the user clicks "Start Recording" in the UI.
      */
-    fun startCameraRecording() {
+    fun startCameraRecording(tripId: String) {
 
         if (_status.value.isCameraRecording) {
             Log.w("RecordingService", "Camera already recording")
@@ -133,8 +134,6 @@ class RecordingService : LifecycleService() {
         startForeground(NOTIF_ID, buildNotif("Begin Recording."))
 
         acquireWakeLock()
-
-        val tripId = generateTripId()
 
         startTimeMs = System.currentTimeMillis()
 
