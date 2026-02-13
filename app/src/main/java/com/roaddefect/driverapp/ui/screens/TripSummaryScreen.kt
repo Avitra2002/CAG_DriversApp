@@ -66,56 +66,53 @@ fun TripSummaryScreen(
                 android.util.Log.i("TripSummaryScreen", "Broadcast received: ${intent?.action}")
                 when (intent?.action) {
                     S3UploadService.ACTION_UPLOAD_COMPLETE -> {
-                        // Trip ID is in yyyyMMddHHmmss format (always >= 19700101000000), so 0L is safe as sentinel
-                        val tripId = intent.getLongExtra(S3UploadService.EXTRA_TRIP_ID, 0L)
-                        android.util.Log.i("TripSummaryScreen", "Received upload complete for trip: $tripId, current trip: ${trip.id}")
-                        if (tripId == trip.id) {
-                            uploadedFilesCount++
-                            android.util.Log.i("TripSummaryScreen", "Upload complete: $uploadedFilesCount/$totalFilesToUpload")
+                        val s3TripId = intent.getStringExtra(S3UploadService.EXTRA_TRIP_ID)
+                        android.util.Log.i("TripSummaryScreen", "Received upload complete for s3tripId: $s3TripId, current trip: ${trip.id}")
+                        uploadedFilesCount++
+                        android.util.Log.i("TripSummaryScreen", "Upload complete: $uploadedFilesCount/$totalFilesToUpload")
 
-                            // All files uploaded
-                            if (uploadedFilesCount >= totalFilesToUpload) {
-                                android.util.Log.i("TripSummaryScreen", "All files uploaded! Calling POST /trips/complete API...")
+                        // All files uploaded
+                        if (uploadedFilesCount >= totalFilesToUpload) {
+                            android.util.Log.i("TripSummaryScreen", "All files uploaded! Calling POST /trips/complete API...")
 
-                                // Step 3: Call POST /trips/{trip_id}/complete API
-                                scope.launch {
-                                    val apiService = TripApiService()
+                            // Step 3: Call POST /trips/{trip_id}/complete API
+                            scope.launch {
+                                val apiService = TripApiService()
 
-                                    // Get file metadata for API call
-                                    val ctx = context ?: return@launch
-                                    val videoFile = FileManager.getVideoFile(ctx, trip.id)
-                                    val gpsFile = FileManager.getGPSFile(ctx, trip.id)
-                                    val imuFile = FileManager.getIMUFile(ctx, trip.id)
+                                // Get file metadata for API call
+                                val ctx = context ?: return@launch
+                                val videoFile = FileManager.getVideoFile(ctx, trip.id)
+                                val gpsFile = FileManager.getGPSFile(ctx, trip.id)
+                                val imuFile = FileManager.getIMUFile(ctx, trip.id)
 
-                                    // Count GPS and IMU points
-                                    val gpsPointCount = gpsFile.readLines().size - 1 // Subtract header
-                                    val imuSampleCount = imuFile.readLines().size - 1 // Subtract header
+                                // Count GPS and IMU points
+                                val gpsPointCount = gpsFile.readLines().size - 1 // Subtract header
+                                val imuSampleCount = imuFile.readLines().size - 1 // Subtract header
 
-                                    val completeResult = apiService.completeTrip(
-                                        tripId = trip.id,
-                                        videoKey = "trips/${trip.id}/video.mp4",
-                                        gpsKey = "trips/${trip.id}/gps_data.xml",
-                                        imuKey = "trips/${trip.id}/imu_data.json",
-                                        videoSize = videoFile.length(),
-                                        videoDuration = (trip.duration / 1000).toInt(), // Convert ms to seconds
-                                        gpsPointCount = gpsPointCount.coerceAtLeast(0),
-                                        imuSampleCount = imuSampleCount.coerceAtLeast(0)
-                                    )
+                                val completeResult = apiService.completeTrip(
+                                    tripId = s3TripId,
+                                    videoKey = "trips/${s3TripId}/video.mp4",
+                                    gpsKey = "trips/${s3TripId}/gps_data.xml",
+                                    imuKey = "trips/${s3TripId}/imu_data.json",
+                                    videoSize = videoFile.length(),
+                                    videoDuration = (trip.duration / 1000).toInt(), // Convert ms to seconds
+                                    gpsPointCount = gpsPointCount.coerceAtLeast(0),
+                                    imuSampleCount = imuSampleCount.coerceAtLeast(0)
+                                )
 
-                                    if (completeResult.isSuccess) {
-                                        val response = completeResult.getOrNull()
-                                        android.util.Log.i("TripSummaryScreen", "Trip completed via API: ${response?.message}")
-                                        android.util.Log.i("TripSummaryScreen", "Step Functions execution ARN: ${response?.execution_arn}")
-                                    } else {
-                                        android.util.Log.e("TripSummaryScreen", "Failed to complete trip via API: ${completeResult.exceptionOrNull()?.message}")
-                                        // TODO: Show error to user - API call failed
-                                    }
+                                if (completeResult.isSuccess) {
+                                    val response = completeResult.getOrNull()
+                                    android.util.Log.i("TripSummaryScreen", "Trip completed via API: ${response?.message}")
+                                    android.util.Log.i("TripSummaryScreen", "Step Functions execution ARN: ${response?.execution_arn}")
+                                } else {
+                                    android.util.Log.e("TripSummaryScreen", "Failed to complete trip via API: ${completeResult.exceptionOrNull()?.message}")
+                                    // TODO: Show error to user - API call failed
                                 }
 
-                                viewModel.updateTrip(trip.copy(uploadStatus = UploadStatus.COMPLETED))
+                            viewModel.updateTrip(trip.copy(uploadStatus = UploadStatus.COMPLETED))
 
-                                uploadedFilesCount = 0
-                            }
+                            uploadedFilesCount = 0
+                        }
                         }
                     }
                     S3UploadService.ACTION_UPLOAD_FAILED -> {
@@ -234,7 +231,7 @@ fun TripSummaryScreen(
                         fontWeight = FontWeight.Medium
                     )
                     Spacer(modifier = Modifier.height(16.dp))
-                    DetailRow("Trip ID", trip.id)
+                    DetailRow("Trip ID", trip.id.toString())
                     Spacer(modifier = Modifier.height(12.dp))
                     DetailRow("Vehicle", trip.vehicleId)
                     Spacer(modifier = Modifier.height(12.dp))
@@ -620,7 +617,7 @@ fun TripSummaryScreen(
                                     putExtra(S3UploadService.EXTRA_FILE_PATH, videoFile.absolutePath)
 //                                    putExtra(S3UploadService.EXTRA_S3_KEY, "trips/${trip.id}/video.mp4")
                                     putExtra(S3UploadService.EXTRA_S3_KEY, expectedKeys?.video_key)
-                                    putExtra(S3UploadService.EXTRA_TRIP_ID, trip.id)
+                                    putExtra(S3UploadService.EXTRA_TRIP_ID, s3TripId)
                                 }
                                 ContextCompat.startForegroundService(context, videoIntent)
                             }
@@ -631,7 +628,7 @@ fun TripSummaryScreen(
                                 putExtra(S3UploadService.EXTRA_FILE_PATH, gpsFile.absolutePath)
 //                                putExtra(S3UploadService.EXTRA_S3_KEY, "trips/${trip.id}/gps_data.csv")
                                 putExtra(S3UploadService.EXTRA_S3_KEY, expectedKeys?.gps_key)
-                                putExtra(S3UploadService.EXTRA_TRIP_ID, trip.id)
+                                putExtra(S3UploadService.EXTRA_TRIP_ID, s3TripId)
                             }
                             ContextCompat.startForegroundService(context, gpsIntent)
 
@@ -641,7 +638,7 @@ fun TripSummaryScreen(
                                 putExtra(S3UploadService.EXTRA_FILE_PATH, gpsEsp32File.absolutePath)
 //                                putExtra(S3UploadService.EXTRA_S3_KEY, "trips/${trip.id}/esp32_gps.csv")
                                 putExtra(S3UploadService.EXTRA_S3_KEY, "trips/${s3TripId}/esp32_gps.gpx")
-                                putExtra(S3UploadService.EXTRA_TRIP_ID, trip.id)
+                                putExtra(S3UploadService.EXTRA_TRIP_ID, s3TripId)
                             }
                             ContextCompat.startForegroundService(context, gpsEsp32Intent)
 
@@ -650,7 +647,7 @@ fun TripSummaryScreen(
                             val imuIntent = Intent(context, S3UploadService::class.java).apply {
                                 putExtra(S3UploadService.EXTRA_FILE_PATH, imuFile.absolutePath)
                                 putExtra(S3UploadService.EXTRA_S3_KEY, expectedKeys?.imu_key)
-                                putExtra(S3UploadService.EXTRA_TRIP_ID, trip.id)
+                                putExtra(S3UploadService.EXTRA_TRIP_ID, s3TripId)
                             }
                             ContextCompat.startForegroundService(context, imuIntent)
 
@@ -659,7 +656,7 @@ fun TripSummaryScreen(
                             val imuEsp32Intent = Intent(context, S3UploadService::class.java).apply {
                                 putExtra(S3UploadService.EXTRA_FILE_PATH, imuEsp32File.absolutePath)
                                 putExtra(S3UploadService.EXTRA_S3_KEY, "trips/${s3TripId}/imu_esp32.csv")
-                                putExtra(S3UploadService.EXTRA_TRIP_ID, trip.id)
+                                putExtra(S3UploadService.EXTRA_TRIP_ID, s3TripId)
                             }
                             ContextCompat.startForegroundService(context, imuEsp32Intent)
 
@@ -668,8 +665,8 @@ fun TripSummaryScreen(
                                 android.util.Log.i("TripSummaryScreen", "Starting trip_meta upload service...")
                                 val metaIntent = Intent(context, S3UploadService::class.java).apply {
                                     putExtra(S3UploadService.EXTRA_FILE_PATH, metaFile.absolutePath)
-                                    putExtra(S3UploadService.EXTRA_S3_KEY, "trips/${trip.id}/trip_meta.json")
-                                    putExtra(S3UploadService.EXTRA_TRIP_ID, trip.id)
+                                    putExtra(S3UploadService.EXTRA_S3_KEY, "trips/$s3TripId/trip_meta.json")
+                                    putExtra(S3UploadService.EXTRA_TRIP_ID, s3TripId)
                                 }
                                 ContextCompat.startForegroundService(context, metaIntent)
                             }
