@@ -175,7 +175,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     //TODO: Ugly to have fragmented startRecording logic here and in RecordingScreen.
-    fun startRecording(tripId: String? = null) {
+    fun startRecording(tripId: Long? = null) {
         _isRecording.value = true
         _currentView.value = AppView.RECORDING
 

@@ -42,7 +42,7 @@ class S3UploadService : Service() {
     private data class UploadTask(
         val file: File,
         val s3Key: String,
-        val tripId: String
+        val tripId: String?
     )
 
     private val uploadQueue = ConcurrentLinkedQueue<UploadTask>()
@@ -111,9 +111,10 @@ class S3UploadService : Service() {
 
         val filePath = intent?.getStringExtra(EXTRA_FILE_PATH)
         val s3Key = intent?.getStringExtra(EXTRA_S3_KEY)
-        val tripId = intent?.getStringExtra(EXTRA_TRIP_ID)
+        // Trip ID is in yyyyMMddHHmmss format (always >= 19700101000000), so 0L is safe as sentinel
+        val tripId = intent!!.getStringExtra(EXTRA_TRIP_ID)
 
-        if (!filePath.isNullOrBlank() && !s3Key.isNullOrBlank() && !tripId.isNullOrBlank()) {
+        if (!filePath.isNullOrBlank() && !s3Key.isNullOrBlank()) {
             val file = File(filePath)
             if (file.exists()) {
                 val task = UploadTask(file, s3Key, tripId)
@@ -193,7 +194,7 @@ class S3UploadService : Service() {
         })
     }
 
-    private fun sendSuccessBroadcast(tripId: String, key: String) {
+    private fun sendSuccessBroadcast(tripId: String?, key: String) {
         val successIntent = Intent(ACTION_UPLOAD_COMPLETE).apply {
             setPackage(packageName)
             putExtra(EXTRA_TRIP_ID, tripId)
@@ -202,7 +203,7 @@ class S3UploadService : Service() {
         sendBroadcast(successIntent)
     }
 
-    private fun sendFailureBroadcast(tripId: String, key: String, error: String) {
+    private fun sendFailureBroadcast(tripId: String?, key: String, error: String) {
         val failIntent = Intent(ACTION_UPLOAD_FAILED).apply {
             setPackage(packageName)
             putExtra(EXTRA_TRIP_ID, tripId)

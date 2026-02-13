@@ -106,7 +106,7 @@ class TripApiService {
 
 
     suspend fun completeTrip(
-        tripId: String,
+        tripId: String?,
         videoKey: String,
         gpsKey: String,
         imuKey: String,
@@ -127,7 +127,7 @@ class TripApiService {
 
                 val requestJson = JSONObject().apply {
                     put("video_key", videoKey)
-                    put("gps_key", gpsKey)
+                    put("gps_key",gpsKey)
                     put("imu_key", imuKey)
                     put("video_size", videoSize)
                     put("video_duration", videoDuration)
@@ -161,7 +161,9 @@ class TripApiService {
                         )
                     }
 
-                    Log.d(TAG, "Complete trip success: $responseBody")
+//                    Log.d(TAG, "Complete trip success: $responseBody")
+                    Log.d(TAG, "Complete trip success")
+
 
                     // Parse response
                     val json = JSONObject(responseBody)
