@@ -134,15 +134,22 @@ class TripApiService {
                     put("gps_point_count", gpsPointCount)
                     put("imu_sample_count", imuSampleCount)
                 }
+                val resolvedTripId = tripId?.toIntOrNull()
+                if (resolvedTripId == null) {
+                    Log.e(TAG, "Invalid tripId for completeTrip: $tripId")
+                    return@withContext Result.failure(
+                        ApiException("Invalid trip ID: $tripId")
+                    )
+                }
 
                 val requestBody = requestJson.toString().toRequestBody(jsonMediaType)
 
                 val request = Request.Builder()
-                    .url(ApiConfig.Endpoints.completeTrip(tripId))
+                    .url(ApiConfig.Endpoints.completeTrip(resolvedTripId))
                     .post(requestBody)
                     .build()
 
-                Log.d(TAG, "Completing trip: POST ${ApiConfig.Endpoints.completeTrip(tripId)}")
+                Log.d(TAG, "Completing trip: POST ${ApiConfig.Endpoints.completeTrip(resolvedTripId)}")
 
                 client.newCall(request).execute().use { response ->
                     val responseBody = response.body?.string()

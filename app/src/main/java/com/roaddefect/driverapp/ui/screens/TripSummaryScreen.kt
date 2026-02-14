@@ -82,12 +82,12 @@ fun TripSummaryScreen(
                                 // Get file metadata for API call
                                 val ctx = context ?: return@launch
                                 val videoFile = FileManager.getVideoFile(ctx, trip.id)
-                                val gpsFile = FileManager.getGPSFile(ctx, trip.id)
+                                val gpsFile = FileManager.getGPSGpxFile(ctx, trip.id)
                                 val imuFile = FileManager.getIMUFile(ctx, trip.id)
 
                                 // Count GPS and IMU points
-                                val gpsPointCount = gpsFile.readLines().size - 1 // Subtract header
-                                val imuSampleCount = imuFile.readLines().size - 1 // Subtract header
+                                val gpsPointCount = if (gpsFile.exists()) gpsFile.readLines().size - 1 else 0
+                                val imuSampleCount = if (imuFile.exists()) imuFile.readLines().size - 1 else 0
 
                                 val completeResult = apiService.completeTrip(
                                     tripId = s3TripId,
@@ -116,9 +116,8 @@ fun TripSummaryScreen(
                         }
                     }
                     S3UploadService.ACTION_UPLOAD_FAILED -> {
-                        // Trip ID is in yyyyMMddHHmmss format (always >= 19700101000000), so 0L is safe as sentinel
-                        val tripId = intent.getLongExtra(S3UploadService.EXTRA_TRIP_ID, 0L)
-                        if (tripId == trip.id) {
+                        val tripId = intent.getStringExtra(S3UploadService.EXTRA_TRIP_ID)
+                        if (tripId == trip.id.toString()) {
                             android.util.Log.e("TripSummaryScreen", "Upload failed for trip $tripId")
                             viewModel.updateTrip(trip.copy(uploadStatus = UploadStatus.FAILED))
                             uploadTriggered = false
