@@ -251,7 +251,7 @@ class BleService : Service() {
             serviceScope.launch {
                 _incomingData.emit(packet)
             }
-//            Log.d(TAG, "Received ${BleConfig.EXPECTED_PACKET_SIZE}-byte packet")
+            Log.d(TAG, "Received ${BleConfig.EXPECTED_PACKET_SIZE}-byte packet")
         } else {
             Log.w(TAG, "Received unexpected packet size: ${data.size}")
         }

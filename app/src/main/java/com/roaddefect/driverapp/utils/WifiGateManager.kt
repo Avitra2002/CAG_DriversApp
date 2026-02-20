@@ -19,6 +19,7 @@ data class WifiGateStatus(
 
 class WifiGateManager(
     private val context: Context,
+    //TODO: Make these configurable from outside
     private val targetSsid: String = "SUTD_Wifi",
     private val rssiThresholdDbm: Int = -90,
     private val requiredStableMs: Long = 10_000L,

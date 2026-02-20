@@ -126,6 +126,7 @@ class RecordingService : LifecycleService() {
      * Start camera recording after preview has been unbound.
      * This should be called after the user clicks "Start Recording" in the UI.
      */
+    //TODO: verify if you're able to just rename this function to startRecording() to more accurately reflect what it does now.
     fun startCameraRecording(tripId: Long) {
 
         if (_status.value.isCameraRecording) {
@@ -207,7 +208,12 @@ class RecordingService : LifecycleService() {
     fun onBleData(packet: BlePacket) {
         if (!_status.value.isRecording) return
 
+        // Parsing ESP32 sensor samples. Saves as a queue for some reason, but should still be single.
         val samples = SensorSample.parseSamples(packet.data)
+        samples.forEach { sample ->
+            Log.d("RecordingService", "Parsed SensorSample: $sample")
+        }
+
         synchronized(esp32SensorSamples) {
             esp32SensorSamples.addAll(samples)
         }

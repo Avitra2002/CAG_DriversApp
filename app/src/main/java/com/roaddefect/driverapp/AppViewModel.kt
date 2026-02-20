@@ -175,6 +175,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     //TODO: Ugly to have fragmented startRecording logic here and in RecordingScreen.
+    //TODO: Even uglier that startRecording logic is called in the MainActivity. Leaking logic into the UI.
     fun startRecording(tripId: Long? = null) {
         _isRecording.value = true
         _currentView.value = AppView.RECORDING
