@@ -40,7 +40,7 @@ import java.util.Locale
 
 data class RecordingStatus(
         val isRecording: Boolean = false,
-        val tripId: String = "",
+        val tripId: Long = 0L, // 0L is safe sentinel value; actual trip IDs are yyyyMMddHHmmss (>= 19700101000000)
         val elapsedTimeMs: Long = 0,
         val distance: Double = 0.0,
         val isCameraRecording: Boolean = false
@@ -96,8 +96,13 @@ class RecordingService : LifecycleService() {
         super.onStartCommand(intent, flags, startId)
         when (intent?.action) {
             ACTION_START_RECORDING -> {
-                val tripId = intent.getStringExtra(EXTRA_TRIP_ID) ?: generateTripId()
-                startCameraRecording(tripId)
+                // Trip ID is in yyyyMMddHHmmss format (always >= 19700101000000), so 0L is safe as sentinel
+                val tripId = intent.getLongExtra(EXTRA_TRIP_ID, 0L)
+                if (tripId != 0L) {
+                    startCameraRecording(tripId)
+                } else {
+                    Log.e("RecordingService", "No trip ID provided in intent - recording cannot start")
+                }
             }
             ACTION_STOP_RECORDING -> {
                 stopRecording()
@@ -117,16 +122,11 @@ class RecordingService : LifecycleService() {
         stopRecording()
     }
 
-    private fun generateTripId(): String {
-        val dateFormat = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault())
-        return "trip_${dateFormat.format(Date())}"
-    }
-
     /**
      * Start camera recording after preview has been unbound.
      * This should be called after the user clicks "Start Recording" in the UI.
      */
-    fun startCameraRecording(tripId: String) {
+    fun startCameraRecording(tripId: Long) {
 
         if (_status.value.isCameraRecording) {
             Log.w("RecordingService", "Camera already recording")
