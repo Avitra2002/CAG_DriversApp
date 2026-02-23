@@ -73,6 +73,10 @@ class RecordingService : LifecycleService() {
     // ESP32 sensor data collection
     private val esp32SensorSamples = mutableListOf<SensorSample>()
 
+    // Reference pair: ESP32 uptime ms and the corresponding phone wall-clock ms at first packet receipt
+    private var esp32FirstUptimeMs: Long? = null
+    private var esp32FirstPhoneMs: Long? = null
+
     private var wakeLock: PowerManager.WakeLock? = null
 
     inner class RecordingBinder : Binder() {
@@ -215,6 +219,13 @@ class RecordingService : LifecycleService() {
         }
 
         synchronized(esp32SensorSamples) {
+            // Capture the clock reference from the very first sample of the recording
+            if (esp32FirstUptimeMs == null && samples.isNotEmpty()) {
+                esp32FirstUptimeMs = samples.first().timestampMs
+                esp32FirstPhoneMs = System.currentTimeMillis()
+                Log.i("RecordingService",
+                    "ESP32 clock reference captured: esp32Uptime=${esp32FirstUptimeMs}ms, phoneMs=${esp32FirstPhoneMs}")
+            }
             esp32SensorSamples.addAll(samples)
         }
     }
@@ -238,6 +249,9 @@ class RecordingService : LifecycleService() {
         // Save ESP32 data if any was collected
         saveESP32Data()
 
+        esp32FirstUptimeMs = null
+        esp32FirstPhoneMs = null
+
         _status.value = _status.value.copy(isRecording = false)
 
         releaseWakeLock()
@@ -260,6 +274,23 @@ class RecordingService : LifecycleService() {
             esp32SensorSamples.clear()
         }
 
+        val firstUptimeMs = esp32FirstUptimeMs
+        val firstPhoneMs = esp32FirstPhoneMs
+        if (firstUptimeMs == null || firstPhoneMs == null) {
+            Log.e("RecordingService", "ESP32 clock reference missing – cannot translate timestamps, skipping save")
+            return
+        }
+
+        val dateFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US).apply {
+            timeZone = TimeZone.getTimeZone("UTC")
+        }
+
+        // Translate an ESP32 uptime value to an ISO 8601 wall-clock string
+        fun esp32ToIso(esp32UptimeMs: Long): String {
+            val phoneMs = firstPhoneMs + (esp32UptimeMs - firstUptimeMs)
+            return dateFormat.format(Date(phoneMs))
+        }
+
         // Save ESP32 GPS data
         try {
             val esp32GpsFile = FileManager.getESP32GpsFile(this, _status.value.tripId)
@@ -267,7 +298,7 @@ class RecordingService : LifecycleService() {
                 writer.write("timestamp,latitude,longitude,altitude\n")
                 samples.forEach { sample ->
                     if (sample.hasValidGnss()) {
-                        writer.write("${sample.timestampMs},${sample.latitude},${sample.longitude},${sample.altitude}\n")
+                        writer.write("${esp32ToIso(sample.timestampMs)},${sample.latitude},${sample.longitude},${sample.altitude}\n")
                     }
                 }
             }
@@ -285,15 +316,11 @@ class RecordingService : LifecycleService() {
                 writer.write("<trk>\n")
                 writer.write("<trkseg>\n")
 
-                val dateFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US)
-                dateFormat.timeZone = TimeZone.getTimeZone("UTC")
-
                 samples.forEach { sample ->
                     if (sample.hasValidGnss()) {
-                        val timeStr = dateFormat.format(Date(sample.timestampMs))
                         writer.write("<trkpt lat=\"${sample.latitude}\" lon=\"${sample.longitude}\">" +
                                 "<ele>${sample.altitude}</ele>" +
-                                "<time>$timeStr</time>" +
+                                "<time>${esp32ToIso(sample.timestampMs)}</time>" +
                                 "</trkpt>\n")
                     }
                 }
@@ -311,9 +338,10 @@ class RecordingService : LifecycleService() {
         try {
             val esp32ImuFile = FileManager.getESP32ImuFile(this, _status.value.tripId)
             FileWriter(esp32ImuFile).use { writer ->
-                writer.write("timestamp,ax,ay,az,gx,gy,gz\n")
+                // acceleration should be in m/s^2 and gyro in rad/s. The esp32 handles the conversion so no need to do anything here.
+                writer.write("timestamp,accel_x,accel_y,accel_z,gyro_x,gyro_y,gyro_y\n")
                 samples.forEach { sample ->
-                    writer.write("${sample.timestampMs},${sample.ax},${sample.ay},${sample.az},${sample.gx},${sample.gy},${sample.gz}\n")
+                    writer.write("${esp32ToIso(sample.timestampMs)},${sample.ax},${sample.ay},${sample.az},${sample.gx},${sample.gy},${sample.gz}\n")
                 }
             }
             Log.i("RecordingService", "ESP32 IMU data saved: ${esp32ImuFile.absolutePath}")
