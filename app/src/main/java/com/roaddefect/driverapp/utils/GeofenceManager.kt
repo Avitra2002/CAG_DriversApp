@@ -13,6 +13,7 @@ import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
+import com.roaddefect.driverapp.config.AppConfig
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -27,10 +28,9 @@ data class GeofenceStatus(
 
 class GeofenceManager(
     private val context: Context,
-    //TODO: Make these configurable from outside
-    private val centerLat: Double = 1.293488,
-    private val centerLng: Double = 103.812114,
-    private val radiusMeters: Double = 100.0
+    private val centerLat: Double = AppConfig.GEOFENCE_CENTER_LAT,
+    private val centerLng: Double = AppConfig.GEOFENCE_CENTER_LNG,
+    private val radiusMeters: Double = AppConfig.GEOFENCE_RADIUS_METERS
 ) {
     private val fusedClient: FusedLocationProviderClient =
         LocationServices.getFusedLocationProviderClient(context)
