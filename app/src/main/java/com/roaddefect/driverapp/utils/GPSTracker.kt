@@ -110,7 +110,7 @@ class GPSTracker(private val context: Context) {
         val request = LocationRequest.Builder(
             Priority.PRIORITY_HIGH_ACCURACY,
             1_000L // Update every 1 second
-        ).setMinUpdateIntervalMillis(500L).build()
+        ).setMinUpdateIntervalMillis(500L).build() // allowing faster updates at 2hz if available
 
         locationCallback = object : LocationCallback() {
             override fun onLocationResult(result: LocationResult) {
@@ -140,7 +140,8 @@ class GPSTracker(private val context: Context) {
 
                 // Log to file
                 try {
-                    val line = "${gpsData.timestamp},${gpsData.latitude},${gpsData.longitude}," +
+                    val timeStr = iso8601Format.format(Date(gpsData.timestamp))
+                    val line = "$timeStr,${gpsData.latitude},${gpsData.longitude}," +
                             "${gpsData.altitude},${gpsData.speed},${gpsData.accuracy}\n"
                     fileWriter?.write(line)
                     fileWriter?.flush()
