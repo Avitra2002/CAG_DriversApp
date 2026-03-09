@@ -7,9 +7,6 @@ import android.content.IntentFilter
 import android.os.Build
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -112,7 +109,7 @@ fun TripSummaryScreen(
                             viewModel.updateTrip(trip.copy(uploadStatus = UploadStatus.COMPLETED))
 
                             uploadedFilesCount = 0
-                        }
+                            }
                         }
                     }
                     S3UploadService.ACTION_UPLOAD_FAILED -> {
@@ -172,184 +169,46 @@ fun TripSummaryScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(24.dp)
-                .padding(bottom = if (gatesReady && trip.uploadStatus == UploadStatus.PENDING) 180.dp else 100.dp),
+                .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 80.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Success Icon
-            Box(
-                modifier = Modifier
-                    .size(80.dp)
-                    .background(AppColors.Success, CircleShape),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Default.CheckCircle,
-                    contentDescription = "Success",
-                    tint = AppColors.Light,
-                    modifier = Modifier.size(48.dp)
-                )
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            Text(
-                text = "Journey Complete!",
-                color = AppColors.Light,
-                fontSize = 28.sp,
-                fontWeight = FontWeight.Bold
-            )
-            Text(
-                text = when {
-                    trip.uploadStatus == UploadStatus.COMPLETED -> "Upload complete ✓"
-                    uploadTriggered -> "Upload in progress..."
-                    else -> "Ready to upload"
-                },
-                color = when {
-                    trip.uploadStatus == UploadStatus.COMPLETED -> AppColors.Success
-                    uploadTriggered -> AppColors.Secondary
-                    else -> AppColors.Muted
-                },
-                fontSize = 14.sp
-            )
-
-            Spacer(modifier = Modifier.height(32.dp))
-
-            // Trip Details Card
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = AppColors.Surface),
-                shape = RoundedCornerShape(16.dp)
-            ) {
-                Column(modifier = Modifier.padding(20.dp)) {
-                    Text(
-                        text = "Trip Details",
-                        color = AppColors.MutedStrong,
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Medium
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-                    DetailRow("Trip ID", trip.id.toString())
-                    Spacer(modifier = Modifier.height(12.dp))
-                    DetailRow("Vehicle", trip.vehicleId)
-                    Spacer(modifier = Modifier.height(12.dp))
-                    DetailRow("Route", trip.routeId)
-                    Spacer(modifier = Modifier.height(12.dp))
-                    DetailRow("Date & Time", "${trip.date} ${trip.time}")
-                }
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Statistics
+            // --- TOP SECTION: Gate statuses (most important) ---
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
+                // Geofence Gate Status
                 Card(
                     modifier = Modifier.weight(1f),
-                    colors = CardDefaults.cardColors(containerColor = AppColors.Surface),
-                    shape = RoundedCornerShape(16.dp)
+                    colors = CardDefaults.cardColors(
+                        containerColor = if (geofenceStatus.isInsideGeofence) AppColors.Success.copy(alpha = 0.12f)
+                        else AppColors.Surface
+                    ),
+                    shape = RoundedCornerShape(12.dp)
                 ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.Default.Timer,
-                                contentDescription = "Duration",
-                                tint = AppColors.Secondary,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = "Duration",
-                                color = AppColors.Muted,
-                                fontSize = 12.sp
-                            )
-                        }
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = formatDuration(trip.duration),
-                            color = AppColors.Light,
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                }
-                Card(
-                    modifier = Modifier.weight(1f),
-                    colors = CardDefaults.cardColors(containerColor = AppColors.Surface),
-                    shape = RoundedCornerShape(16.dp)
-                ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.Default.Navigation,
-                                contentDescription = "Distance",
-                                tint = AppColors.Success,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = "Distance",
-                                color = AppColors.Muted,
-                                fontSize = 12.sp
-                            )
-                        }
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = "%.2f km".format(trip.distance),
-                            color = AppColors.Light,
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // Upload Prerequisites Header
-            if (trip.uploadStatus == UploadStatus.PENDING) {
-                
-                Text(
-                    text = "Checking: Both gates must pass before uploading",
-                    color = AppColors.Muted,
-                    fontSize = 13.sp
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-            }
-
-            // Geofence Gate Status
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = if (geofenceStatus.isInsideGeofence) AppColors.Success.copy(alpha = 0.12f)
-                    else AppColors.Surface
-                ),
-                shape = RoundedCornerShape(16.dp)
-            ) {
-                Column(modifier = Modifier.padding(20.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
                         Icon(
                             imageVector = Icons.Default.LocationOn,
                             contentDescription = "Geofence",
                             tint = if (geofenceStatus.isInsideGeofence) AppColors.Success else AppColors.Muted,
-                            modifier = Modifier.size(24.dp)
+                            modifier = Modifier.size(22.dp)
                         )
-                        Spacer(modifier = Modifier.width(12.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
                                 text = "Geofence Gate",
                                 color = AppColors.Light,
-                                fontSize = 16.sp,
+                                fontSize = 14.sp,
                                 fontWeight = FontWeight.Medium
                             )
                             geofenceStatus.distanceToCenter?.let { distance ->
                                 Text(
                                     text = "Distance: %.1f m".format(distance),
                                     color = AppColors.Muted,
-                                    fontSize = 12.sp
+                                    fontSize = 11.sp
                                 )
                             }
                         }
@@ -358,56 +217,55 @@ fun TripSummaryScreen(
                                 imageVector = Icons.Default.CheckCircle,
                                 contentDescription = "Passed",
                                 tint = AppColors.Success,
-                                modifier = Modifier.size(24.dp)
+                                modifier = Modifier.size(22.dp)
                             )
                         } else if (geofenceStatus.distanceToCenter != null) {
                             CircularProgressIndicator(
-                                modifier = Modifier.size(20.dp),
+                                modifier = Modifier.size(18.dp),
                                 color = AppColors.Secondary,
                                 strokeWidth = 2.dp
                             )
                         }
                     }
                 }
-            }
 
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // WiFi Gate Status
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = if (wifiGateStatus.gatePassed) AppColors.Success.copy(alpha = 0.12f)
-                    else AppColors.Surface
-                ),
-                shape = RoundedCornerShape(16.dp)
-            ) {
-                Column(modifier = Modifier.padding(20.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                // WiFi Gate Status
+                Card(
+                    modifier = Modifier.weight(1f),
+                    colors = CardDefaults.cardColors(
+                        containerColor = if (wifiGateStatus.gatePassed) AppColors.Success.copy(alpha = 0.12f)
+                        else AppColors.Surface
+                    ),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
                         Icon(
                             imageVector = Icons.Default.Wifi,
                             contentDescription = "WiFi",
                             tint = if (wifiGateStatus.gatePassed) AppColors.Success else AppColors.Muted,
-                            modifier = Modifier.size(24.dp)
+                            modifier = Modifier.size(22.dp)
                         )
-                        Spacer(modifier = Modifier.width(12.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
                                 text = "WiFi Gate",
                                 color = AppColors.Light,
-                                fontSize = 16.sp,
+                                fontSize = 14.sp,
                                 fontWeight = FontWeight.Medium
                             )
                             Text(
                                 text = "SSID: ${wifiGateStatus.ssid} | ${wifiGateStatus.rssi} dBm",
                                 color = AppColors.Muted,
-                                fontSize = 12.sp
+                                fontSize = 11.sp
                             )
                             if (!wifiGateStatus.gatePassed && wifiGateStatus.isOnTargetWifi) {
                                 Text(
                                     text = "Stable: ${formatMs(wifiGateStatus.stableMs)} / 10s",
                                     color = AppColors.Muted,
-                                    fontSize = 12.sp
+                                    fontSize = 11.sp
                                 )
                             }
                         }
@@ -416,11 +274,11 @@ fun TripSummaryScreen(
                                 imageVector = Icons.Default.CheckCircle,
                                 contentDescription = "Passed",
                                 tint = AppColors.Success,
-                                modifier = Modifier.size(24.dp)
+                                modifier = Modifier.size(22.dp)
                             )
                         } else if (wifiGateStatus.isOnTargetWifi) {
                             CircularProgressIndicator(
-                                modifier = Modifier.size(20.dp),
+                                modifier = Modifier.size(18.dp),
                                 color = AppColors.Secondary,
                                 strokeWidth = 2.dp
                             )
@@ -429,82 +287,177 @@ fun TripSummaryScreen(
                 }
             }
 
-            // Upload in progress card
+            // Upload Prerequisites hint
+            if (trip.uploadStatus == UploadStatus.PENDING) {
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(
+                    text = "Both gates must pass before uploading",
+                    color = AppColors.Muted,
+                    fontSize = 11.sp
+                )
+            }
+
+            // Upload status indicators (compact inline)
             if (trip.uploadStatus == UploadStatus.UPLOADING) {
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(8.dp))
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     colors = CardDefaults.cardColors(containerColor = AppColors.Secondary.copy(alpha = 0.12f)),
-                    shape = RoundedCornerShape(16.dp)
+                    shape = RoundedCornerShape(12.dp)
                 ) {
                     Row(
-                        modifier = Modifier.padding(20.dp),
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         CircularProgressIndicator(
-                            modifier = Modifier.size(24.dp),
+                            modifier = Modifier.size(18.dp),
                             color = AppColors.Secondary,
-                            strokeWidth = 3.dp
+                            strokeWidth = 2.dp
                         )
-                        Spacer(modifier = Modifier.width(16.dp))
-                        Column {
-                            Text(
-                                text = "Uploading files...",
-                                color = AppColors.Light,
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.Medium
-                            )
-                            if (uploadedFilesCount > 0) {
-                                Text(
-                                    text = "$uploadedFilesCount of $totalFilesToUpload files completed",
-                                    color = AppColors.Muted,
-                                    fontSize = 12.sp
-                                )
-                            }
-                        }
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(
+                            text = if (uploadedFilesCount > 0)
+                                "Uploading… $uploadedFilesCount/$totalFilesToUpload"
+                            else "Uploading files…",
+                            color = AppColors.Light,
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Medium
+                        )
                     }
                 }
             }
 
-            // Upload complete card
             if (trip.uploadStatus == UploadStatus.COMPLETED) {
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(8.dp))
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     colors = CardDefaults.cardColors(containerColor = AppColors.Success.copy(alpha = 0.12f)),
-                    shape = RoundedCornerShape(16.dp)
+                    shape = RoundedCornerShape(12.dp)
                 ) {
                     Row(
-                        modifier = Modifier.padding(20.dp),
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(
                             imageVector = Icons.Default.CheckCircle,
                             contentDescription = "Success",
                             tint = AppColors.Success,
-                            modifier = Modifier.size(24.dp)
+                            modifier = Modifier.size(18.dp)
                         )
-                        Spacer(modifier = Modifier.width(16.dp))
-                        Column {
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(
+                            text = "Upload successful – all files on S3",
+                            color = AppColors.Light,
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
+            }
+
+            // --- MIDDLE SECTION: Trip Details (3/5) + Stats (2/5) ---
+
+//            Spacer(modifier = Modifier.weight(1f))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                // Trip Details Card – 3/5 width
+                Card(
+                    modifier = Modifier.weight(3f),
+                    colors = CardDefaults.cardColors(containerColor = AppColors.Surface),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Column(modifier = Modifier.padding(12.dp)) {
+                        Text(
+                            text = "Trip Details",
+                            color = AppColors.MutedStrong,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        DetailRow("Trip ID", trip.id.toString())
+                        Spacer(modifier = Modifier.height(4.dp))
+                        DetailRow("Vehicle", trip.vehicleId)
+                        Spacer(modifier = Modifier.height(4.dp))
+                        DetailRow("Route", trip.routeId)
+                        Spacer(modifier = Modifier.height(4.dp))
+                        DetailRow("Date", "${trip.date} ${trip.time}")
+                    }
+                }
+
+                // Duration + Distance cards – 2/5 width, stacked vertically
+                Column(
+                    modifier = Modifier.weight(2f),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(containerColor = AppColors.Surface),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Column(modifier = Modifier.padding(10.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = Icons.Default.Timer,
+                                    contentDescription = "Duration",
+                                    tint = AppColors.Secondary,
+                                    modifier = Modifier.size(14.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = "Duration",
+                                    color = AppColors.Muted,
+                                    fontSize = 11.sp
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(4.dp))
                             Text(
-                                text = "Upload successful!",
+                                text = formatDuration(trip.duration),
                                 color = AppColors.Light,
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.Medium
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold
                             )
+                        }
+                    }
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(containerColor = AppColors.Surface),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Column(modifier = Modifier.padding(10.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = Icons.Default.Navigation,
+                                    contentDescription = "Distance",
+                                    tint = AppColors.Success,
+                                    modifier = Modifier.size(14.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = "Distance",
+                                    color = AppColors.Muted,
+                                    fontSize = 11.sp
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(4.dp))
                             Text(
-                                text = "All files uploaded to S3",
-                                color = AppColors.Muted,
-                                fontSize = 12.sp
+                                text = "%.2f km".format(trip.distance),
+                                color = AppColors.Light,
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold
                             )
                         }
                     }
                 }
             }
+
+            Spacer(modifier = Modifier.weight(1f))
         }
 
         // Action Buttons
-        Column(
+        Row(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
@@ -517,9 +470,46 @@ fun TripSummaryScreen(
                         )
                     )
                 )
-                .padding(24.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
+            // Return button (text and action depend on source)
+            OutlinedButton(
+                onClick = {
+                    viewModel.wifiGateManager.stopMonitoring()
+                    viewModel.geofenceManager.stopMonitoring()
+                    when (sourceView) {
+                        com.roaddefect.driverapp.models.TripSummarySource.FROM_RECORDING -> onNavigateToDashboard()
+                        com.roaddefect.driverapp.models.TripSummarySource.FROM_QUEUE -> onNavigateToQueue()
+                    }
+                },
+                modifier = Modifier
+                    .weight(1f)
+                    .height(52.dp),
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.outlinedButtonColors(
+                    contentColor = AppColors.Light
+                )
+            ) {
+                Icon(
+                    imageVector = when (sourceView) {
+                        com.roaddefect.driverapp.models.TripSummarySource.FROM_RECORDING -> Icons.Default.Home
+                        com.roaddefect.driverapp.models.TripSummarySource.FROM_QUEUE -> Icons.Default.ArrowBack
+                    },
+                    contentDescription = "Return",
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = when (sourceView) {
+                        com.roaddefect.driverapp.models.TripSummarySource.FROM_RECORDING -> "Return"
+                        com.roaddefect.driverapp.models.TripSummarySource.FROM_QUEUE -> "Return"
+                    },
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+
             // Upload button (only shown when gates passed and not already uploading/completed)
             if (gatesReady && trip.uploadStatus == UploadStatus.PENDING) {
                 Button(
@@ -675,60 +665,26 @@ fun TripSummaryScreen(
                         }
                     },
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .height(64.dp),
+                        .weight(1f)
+                        .height(52.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = AppColors.Primary),
-                    shape = RoundedCornerShape(16.dp)
+                    shape = RoundedCornerShape(12.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Default.CloudUpload,
                         contentDescription = "Upload",
-                        modifier = Modifier.size(24.dp)
+                        modifier = Modifier.size(20.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "Upload to S3",
-                        fontSize = 18.sp,
+                        text = "Upload",
+                        fontSize = 16.sp,
                         fontWeight = FontWeight.SemiBold
                     )
                 }
-            }
-
-            // Return button (text and action depend on source)
-            OutlinedButton(
-                onClick = {
-                    viewModel.wifiGateManager.stopMonitoring()
-                    viewModel.geofenceManager.stopMonitoring()
-                    when (sourceView) {
-                        com.roaddefect.driverapp.models.TripSummarySource.FROM_RECORDING -> onNavigateToDashboard()
-                        com.roaddefect.driverapp.models.TripSummarySource.FROM_QUEUE -> onNavigateToQueue()
-                    }
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(64.dp),
-                shape = RoundedCornerShape(16.dp),
-                colors = ButtonDefaults.outlinedButtonColors(
-                    contentColor = AppColors.Light
-                )
-            ) {
-                Icon(
-                    imageVector = when (sourceView) {
-                        com.roaddefect.driverapp.models.TripSummarySource.FROM_RECORDING -> Icons.Default.Home
-                        com.roaddefect.driverapp.models.TripSummarySource.FROM_QUEUE -> Icons.Default.ArrowBack
-                    },
-                    contentDescription = "Return",
-                    modifier = Modifier.size(24.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = when (sourceView) {
-                        com.roaddefect.driverapp.models.TripSummarySource.FROM_RECORDING -> "Return to Dashboard"
-                        com.roaddefect.driverapp.models.TripSummarySource.FROM_QUEUE -> "Return to Upload Queue"
-                    },
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.SemiBold
-                )
+            } else if (trip.uploadStatus != UploadStatus.PENDING) {
+                // If it's uploading or completed, we might want to show a disabled button or just let the return button take full width.
+                // For now, we'll let the return button take full width if the upload button is hidden.
             }
         }
     }

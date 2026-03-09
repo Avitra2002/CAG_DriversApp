@@ -182,9 +182,9 @@ fun RecordingScreen(viewModel: AppViewModel, activity: MainActivity) {
                                 }
 
                                 // Bottom Section - ESP32 warning (if needed)
-                                if (!sensorStatus.bluetooth) {
-                                        ESP32WarningBannerCompact()
-                                }
+//                                if (!sensorStatus.bluetooth) {
+//                                        ESP32WarningBannerCompact()
+//                                }
                         }
 
                         // Right Column - 3/5 of screen width (Preview and button)

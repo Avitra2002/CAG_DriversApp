@@ -122,15 +122,24 @@ fun DashboardScreen(
                     Spacer(modifier = Modifier.height(16.dp))
 
                     if (isLandscape) {
-                        Row(modifier = Modifier.fillMaxWidth()) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(IntrinsicSize.Min)
+                        ) {
                             Column(modifier = Modifier.weight(1f)) {
                                 SensorStatusRow("Back Camera", sensorStatus.camera, Icons.Default.Camera)
                                 Spacer(modifier = Modifier.height(12.dp))
                                 SensorStatusRow("GPS Tracker", sensorStatus.gps, Icons.Default.LocationOn)
                                 Spacer(modifier = Modifier.height(12.dp))
-                                SensorStatusRow("IMU Sensors", sensorStatus.imu, Icons.Default.Sensors)
                             }
-                            Spacer(modifier = Modifier.width(24.dp))
+                            Box(
+                                modifier = Modifier
+                                    .padding(horizontal = 11.dp)
+                                    .width(1.dp)
+                                    .fillMaxHeight()
+                                    .background(AppColors.Muted.copy(alpha = 0.5f))
+                            )
                             Column(modifier = Modifier.weight(1f)) {
                                 SensorStatusRow("BLE", sensorStatus.bluetooth, Icons.Default.Bluetooth)
                                 Spacer(modifier = Modifier.height(12.dp))
@@ -140,6 +149,16 @@ fun DashboardScreen(
                                     Icons.Default.Storage,
                                     "${sensorStatus.storage}%"
                                 )
+                            }
+                            Box(
+                                modifier = Modifier
+                                    .padding(horizontal = 11.dp)
+                                    .width(1.dp)
+                                    .fillMaxHeight()
+                                    .background(AppColors.Muted.copy(alpha = 0.5f))
+                            )
+                            Column(modifier = Modifier.weight(1f)) {
+                                SensorStatusRow("IMU Sensors", sensorStatus.imu, Icons.Default.Sensors)
                             }
                         }
                     } else {
