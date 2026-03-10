@@ -153,7 +153,7 @@ class RecordingService : LifecycleService() {
                 put("app_version", applicationContext.packageManager
                     .getPackageInfo(applicationContext.packageName, 0).versionName ?: "1.0.0")
             }
-            metadataFile.writeText(metaJson.toString(2))
+            metadataFile.writeText(metaJson.toString())
             android.util.Log.i("TripSummaryScreen", "Created trip_meta.json")
         } catch (e: Exception) {
             android.util.Log.e("TripSummaryScreen", "Failed to create trip_meta.json", e)
@@ -167,7 +167,8 @@ class RecordingService : LifecycleService() {
 
         // Start IMU recording
         val imuFile = FileManager.getIMUFile(this, tripId)
-        imuSensorManager.startRecording(imuFile)
+        val imuAxisMappingFile = FileManager.getIMUAxisMappingFile(this, tripId)
+        imuSensorManager.startRecording(imuFile, imuAxisMappingFile)
 
         _status.value =
             RecordingStatus(

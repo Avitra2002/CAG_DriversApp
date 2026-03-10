@@ -17,12 +17,24 @@ object FileManager {
     private const val ESP32_IMU_FILE_NAME = "esp32_imu.csv"
     private const val GPS_GPX_FILE_NAME = "gps_data.gpx"
     private const val ESP32_GPS_GPX_FILE_NAME = "esp32_gps.gpx"
+    private const val IMU_AXIS_MAPPING_FILE_NAME = "imu_axis_mapping.json"
+
+    private const val DevMode = true;
 
     fun getTripDirectory(context: Context, tripId: Long): File {
-        val tripDir = File(context.getExternalFilesDir(null), tripId.toString())
-//        val tripDir = File(tripsDir, tripId)
-        tripDir.mkdirs()
-        return tripDir
+        return if (DevMode) {
+            val documentsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS)
+            val roadDefectsDir = File(documentsDir, "RoadDefects")
+            val tripDir = File(roadDefectsDir, tripId.toString())
+            tripDir.mkdirs()
+            tripDir
+        } else {
+            val appDataDir = context.getExternalFilesDir(null)
+            val tripsDir = File(appDataDir, TRIP_FOLDER_NAME)
+            val tripDir = File(tripsDir, tripId.toString())
+            tripDir.mkdirs()
+            tripDir
+        }
     }
 
     fun getVideoFile(context: Context, tripId: Long): File {
@@ -63,6 +75,11 @@ object FileManager {
     fun getESP32ImuFile(context: Context, tripId: Long): File {
         val tripDir = getTripDirectory(context, tripId)
         return File(tripDir, ESP32_IMU_FILE_NAME)
+    }
+
+    fun getIMUAxisMappingFile(context: Context, tripId: Long): File {
+        val tripDir = getTripDirectory(context, tripId)
+        return File(tripDir, IMU_AXIS_MAPPING_FILE_NAME)
     }
 
     fun getAllTrips(context: Context): List<File> {

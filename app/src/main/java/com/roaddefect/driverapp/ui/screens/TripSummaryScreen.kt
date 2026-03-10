@@ -546,6 +546,53 @@ fun TripSummaryScreen(
                             val imuEsp32File = FileManager.getESP32ImuFile(context, trip.id)
                             val metaFile = FileManager.getMetadataFile(context, trip.id)
 
+                            // If there's an imu_axis_mapping file, merge its contents into metadata.json
+                            try {
+                                val imuAxisFile = FileManager.getIMUAxisMappingFile(context, trip.id)
+                                if (imuAxisFile.exists()) {
+                                    // ensure metadata file exists so we can merge into it
+                                    if (!metaFile.exists()) {
+                                        metaFile.writeText("{}")
+                                    }
+                                    val metaJson = org.json.JSONObject(metaFile.readText())
+                                    val imuAxisJson = org.json.JSONObject(imuAxisFile.readText())
+                                    // imuAxisJson may already contain the mapping or just the array
+                                    val axisArray = if (imuAxisJson.has("imu_axis_mapping")) {
+                                        imuAxisJson.get("imu_axis_mapping")
+                                    } else {
+                                        imuAxisJson
+                                    }
+                                    metaJson.put("imu_axis_mapping", axisArray)
+                                    // add the esp32 mapping as an actual array
+                                    val esp32Array = org.json.JSONArray().apply {
+                                        put(1); put(2); put(3)
+                                    }
+                                    metaJson.put("esp32_imu_axis_mapping", esp32Array)
+                                    metaFile.writeText(metaJson.toString())
+                                    android.util.Log.i("TripSummaryScreen", "Merged imu axis mapping into metadata")
+                                } else {
+                                    // still add esp32 mapping even if imu_axis_mapping.json is absent
+                                    if (metaFile.exists()) {
+                                        val metaJson = org.json.JSONObject(metaFile.readText())
+                                        val esp32Array = org.json.JSONArray().apply {
+                                            put(1); put(2); put(3)
+                                        }
+                                        metaJson.put("esp32_imu_axis_mapping", esp32Array)
+                                        metaFile.writeText(metaJson.toString())
+                                    } else {
+                                        // create metadata file containing only the esp32 mapping
+                                        val metaJson = org.json.JSONObject()
+                                        val esp32Array = org.json.JSONArray().apply {
+                                            put(1); put(2); put(3)
+                                        }
+                                        metaJson.put("esp32_imu_axis_mapping", esp32Array)
+                                        metaFile.writeText(metaJson.toString())
+                                    }
+                                }
+                            } catch (e: Exception) {
+                                android.util.Log.e("TripSummaryScreen", "Failed to merge imu axis mapping into metadata", e)
+                            }
+
                             android.util.Log.i("TripSummaryScreen", "Upload button clicked!")
 
                             android.util.Log.i("TripSummaryScreen", "Trip ID: ${trip.id}")
