@@ -30,7 +30,8 @@ class GeofenceManager(
     private val context: Context,
     private val centerLat: Double = AppConfig.GEOFENCE_CENTER_LAT,
     private val centerLng: Double = AppConfig.GEOFENCE_CENTER_LNG,
-    private val radiusMeters: Double = AppConfig.GEOFENCE_RADIUS_METERS
+    private val radiusMeters: Double = AppConfig.GEOFENCE_RADIUS_METERS,
+    private val enabled: Boolean = AppConfig.GEOFENCE_ENABLED
 ) {
     private val fusedClient: FusedLocationProviderClient =
         LocationServices.getFusedLocationProviderClient(context)
@@ -41,6 +42,12 @@ class GeofenceManager(
     private var locationCallback: LocationCallback? = null
 
     fun startMonitoring() {
+        if (!enabled) {
+            // Config disabled: immediately mark geofence as passed
+            _status.value = GeofenceStatus(hasPermission = true, isInsideGeofence = true)
+            return
+        }
+
         val hasPermission = ContextCompat.checkSelfPermission(
             context,
             Manifest.permission.ACCESS_FINE_LOCATION
@@ -98,6 +105,7 @@ class GeofenceManager(
         locationCallback = null
     }
 
+    @Suppress("unused")
     fun reset() {
         _status.value = GeofenceStatus(hasPermission = _status.value.hasPermission)
     }

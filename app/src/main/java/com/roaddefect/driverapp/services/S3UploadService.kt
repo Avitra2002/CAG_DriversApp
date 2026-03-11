@@ -13,6 +13,7 @@ import android.os.Handler
 import android.os.Looper
 import android.util.Log
 import androidx.core.app.NotificationCompat
+import com.roaddefect.driverapp.config.ApiConfig
 import com.amazonaws.ClientConfiguration
 import com.amazonaws.auth.CognitoCachingCredentialsProvider
 import com.amazonaws.mobileconnectors.s3.transferutility.TransferListener
@@ -41,8 +42,8 @@ class S3UploadService : Service() {
         const val ACTION_UPLOAD_FAILED = "com.roaddefect.driverapp.UPLOAD_FAILED"
 
         // AWS Config - Extracted from amplifyconfiguration.json
-        private const val COGNITO_POOL_ID = "ap-southeast-1:a6eaaf29-5595-413c-93a0-a9bb66195ffc"
-        private const val BUCKET_NAME = "road-safety-dashboard-dev-storag-rawbucket0c3ee094-06krq7xkrooi"
+        private const val COGNITO_POOL_ID = ApiConfig.COGNITO_IDENTITY_POOL_ID
+        private const val BUCKET_NAME = ApiConfig.S3_RAW_BUCKET_NAME
         private val REGION = Regions.AP_SOUTHEAST_1
 
         private const val CHANNEL_ID = "upload_channel"

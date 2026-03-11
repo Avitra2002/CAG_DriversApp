@@ -2,7 +2,7 @@ package com.roaddefect.driverapp.utils
 
 import android.content.Context
 import android.net.wifi.WifiManager
-import android.util.Log
+import com.roaddefect.driverapp.config.AppConfig
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -18,13 +18,13 @@ data class WifiGateStatus(
 )
 
 class WifiGateManager(
-    private val context: Context,
-    //TODO: Make these configurable from outside
-    private val targetSsid: String = "SUTD_Wifi",
-    private val rssiThresholdDbm: Int = -90,
-    private val requiredStableMs: Long = 10_000L,
-    private val sampleIntervalMs: Long = 1_000L,
-    private val allowedDipMs: Long = 3_000L
+    context: Context,
+    private val targetSsid: String = AppConfig.WIFI_GATE_TARGET_SSID,
+    private val rssiThresholdDbm: Int = AppConfig.WIFI_GATE_RSSI_THRESHOLD_DBM,
+    private val requiredStableMs: Long = AppConfig.WIFI_GATE_REQUIRED_STABLE_MS,
+    private val sampleIntervalMs: Long = AppConfig.WIFI_GATE_SAMPLE_INTERVAL_MS,
+    private val allowedDipMs: Long = AppConfig.WIFI_GATE_ALLOWED_DIP_MS,
+    private val enabled: Boolean = AppConfig.WIFI_GATE_ENABLED
 ) {
     private val wifiManager = context.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
 
@@ -38,79 +38,84 @@ class WifiGateManager(
     private fun cleanSsid(raw: String): String =
         raw.trim().removePrefix("\"").removeSuffix("\"")
 
+    @Suppress("DEPRECATION")
     suspend fun startMonitoring() {
-        _status.value = WifiGateStatus(gatePassed = true)
+        if (!enabled) {
+            // Config disabled: immediately mark gate as passed (keeps previous behavior)
+            _status.value = WifiGateStatus(gatePassed = true)
+            return
+        }
 
-//        if (isMonitoring) return
-//        isMonitoring = true
-//
-//        // Reset state
-//        goodStartAt = null
-//        lastGoodAt = null
-//        _status.value = WifiGateStatus()
+        if (isMonitoring) return
+        isMonitoring = true
 
-//        while (isMonitoring) {
-//            val info = wifiManager.connectionInfo
-//            val ssidRaw = info.ssid ?: "Unknown"
-//            val rssi = info.rssi
-//            val now = android.os.SystemClock.elapsedRealtime()
-//
-//            val ssidClean = cleanSsid(ssidRaw)
-//            val onTargetWifi = ssidClean.equals(targetSsid, ignoreCase = true)
-//            val strongEnough = rssi >= rssiThresholdDbm
-//            val isGood = onTargetWifi && strongEnough
-//
-//            val currentStatus = _status.value
-//
-//            if (!currentStatus.gatePassed) {
-//                if (isGood) {
-//                    if (goodStartAt == null) goodStartAt = now
-//                    lastGoodAt = now
-//                    val stable = now - (goodStartAt ?: now)
-//
-//                    _status.value = currentStatus.copy(
-//                        ssid = ssidClean,
-//                        rssi = rssi,
-//                        isOnTargetWifi = onTargetWifi,
-//                        isStrongEnough = strongEnough,
-//                        stableMs = stable,
-//                        gatePassed = stable >= requiredStableMs
-//                    )
-//                } else {
-//                    // Check if it's a brief dip or a real disconnect
-//                    val last = lastGoodAt
-//                    if (last == null || (now - last) > allowedDipMs) {
-//                        // Reset
-//                        goodStartAt = null
-//                        lastGoodAt = null
-//                        _status.value = WifiGateStatus(
-//                            ssid = ssidClean,
-//                            rssi = rssi,
-//                            isOnTargetWifi = onTargetWifi,
-//                            isStrongEnough = strongEnough
-//                        )
-//                    } else {
-//                        // Just update display but keep progress
-//                        _status.value = currentStatus.copy(
-//                            ssid = ssidClean,
-//                            rssi = rssi,
-//                            isOnTargetWifi = onTargetWifi,
-//                            isStrongEnough = strongEnough
-//                        )
-//                    }
-//                }
-//            } else {
-//                // Gate already passed, just update info
-//                _status.value = currentStatus.copy(
-//                    ssid = ssidClean,
-//                    rssi = rssi,
-//                    isOnTargetWifi = onTargetWifi,
-//                    isStrongEnough = strongEnough
-//                )
-//            }
-//
-//            delay(sampleIntervalMs)
-//        }
+        // Reset state
+        goodStartAt = null
+        lastGoodAt = null
+        _status.value = WifiGateStatus()
+
+        while (isMonitoring) {
+            val info = wifiManager.connectionInfo
+            val ssidRaw = info.ssid ?: "Unknown"
+            val rssi = info.rssi
+            val now = android.os.SystemClock.elapsedRealtime()
+
+            val ssidClean = cleanSsid(ssidRaw)
+            val onTargetWifi = ssidClean.equals(targetSsid, ignoreCase = true)
+            val strongEnough = rssi >= rssiThresholdDbm
+            val isGood = onTargetWifi && strongEnough
+
+            val currentStatus = _status.value
+
+            if (!currentStatus.gatePassed) {
+                if (isGood) {
+                    if (goodStartAt == null) goodStartAt = now
+                    lastGoodAt = now
+                    val stable = now - (goodStartAt ?: now)
+
+                    _status.value = currentStatus.copy(
+                        ssid = ssidClean,
+                        rssi = rssi,
+                        isOnTargetWifi = onTargetWifi,
+                        isStrongEnough = strongEnough,
+                        stableMs = stable,
+                        gatePassed = stable >= requiredStableMs
+                    )
+                } else {
+                    // Check if it's a brief dip or a real disconnect
+                    val last = lastGoodAt
+                    if (last == null || (now - last) > allowedDipMs) {
+                        // Reset
+                        goodStartAt = null
+                        lastGoodAt = null
+                        _status.value = WifiGateStatus(
+                            ssid = ssidClean,
+                            rssi = rssi,
+                            isOnTargetWifi = onTargetWifi,
+                            isStrongEnough = strongEnough
+                        )
+                    } else {
+                        // Just update display but keep progress
+                        _status.value = currentStatus.copy(
+                            ssid = ssidClean,
+                            rssi = rssi,
+                            isOnTargetWifi = onTargetWifi,
+                            isStrongEnough = strongEnough
+                        )
+                    }
+                }
+            } else {
+                // Gate already passed, just update info
+                _status.value = currentStatus.copy(
+                    ssid = ssidClean,
+                    rssi = rssi,
+                    isOnTargetWifi = onTargetWifi,
+                    isStrongEnough = strongEnough
+                )
+            }
+
+            delay(sampleIntervalMs)
+        }
     }
 
     fun stopMonitoring() {
@@ -119,6 +124,7 @@ class WifiGateManager(
         lastGoodAt = null
     }
 
+    @Suppress("unused")
     fun reset() {
         goodStartAt = null
         lastGoodAt = null
