@@ -152,6 +152,17 @@ class RecordingService : LifecycleService() {
                 })
                 put("app_version", applicationContext.packageManager
                     .getPackageInfo(applicationContext.packageName, 0).versionName ?: "1.0.0")
+                // include current phone resolution (width x height in pixels)
+                val metrics = resources.displayMetrics
+                // ensure landscape orientation string (width should be larger)
+                val width = metrics.widthPixels
+                val height = metrics.heightPixels
+                val resolutionString = if (width >= height) {
+                    "${width}x${height}"
+                } else {
+                    "${height}x${width}"
+                }
+                put("resolution", resolutionString)
             }
             metadataFile.writeText(metaJson.toString())
             android.util.Log.i("TripSummaryScreen", "Created trip_meta.json")

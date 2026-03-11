@@ -263,14 +263,14 @@ class IMUSensorManager(private val context: Context) {
             /**
              * Produces JSON like:
              * {
-             *   "imu_axis_mapping": [3, -2, 1]
+             *   "imu_mapping": [3, -2, 1]
              * }
              * Each value is axis_index * sign, where index 1=X, 2=Y, 3=Z.
              * Order is [forward, lateral (left), downward].
              * A negative value means that direction produces negative readings on that axis.
              */
             fun toJson(): JSONObject = JSONObject().apply {
-                put("imu_axis_mapping", JSONArray().apply {
+                put("imu_mapping", JSONArray().apply {
                     put(forward.index * forwardSign)
                     put(lateral.index * lateralSign)
                     put(downward.index * downwardSign)
