@@ -4,6 +4,7 @@ import android.content.Intent
 import android.view.ViewGroup
 import androidx.camera.view.PreviewView
 import androidx.compose.animation.core.*
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
@@ -16,6 +17,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -219,6 +221,16 @@ fun RecordingScreen(viewModel: AppViewModel, activity: MainActivity) {
                                                                 },
                                                                 modifier = Modifier.fillMaxSize()
                                                         )
+                                                        // horizontal line overlay at 20% from bottom
+                                                        Canvas(modifier = Modifier.matchParentSize()) {
+                                                                val y = size.height * 0.85f
+                                                                drawLine(
+                                                                        color = Color.Red,
+                                                                        start = Offset(0f, y),
+                                                                        end = Offset(size.width, y),
+                                                                        strokeWidth = 2.dp.toPx()
+                                                                )
+                                                        }
                                                 } else {
                                                         // Placeholder for when recording in background
                                                         Column(
