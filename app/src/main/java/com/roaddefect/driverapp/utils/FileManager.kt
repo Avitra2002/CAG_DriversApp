@@ -19,7 +19,7 @@ object FileManager {
     private const val ESP32_GPS_GPX_FILE_NAME = "esp32_gps.gpx"
     private const val IMU_AXIS_MAPPING_FILE_NAME = "imu_axis_mapping.json"
 
-    private const val DevMode = true;
+    private const val DevMode = true
 
     fun getTripDirectory(context: Context, tripId: Long): File {
         return if (DevMode) {
@@ -30,8 +30,9 @@ object FileManager {
             tripDir
         } else {
             val appDataDir = context.getExternalFilesDir(null)
-            val tripsDir = File(appDataDir, TRIP_FOLDER_NAME)
-            val tripDir = File(tripsDir, tripId.toString())
+//            val tripsDir = File(appDataDir, TRIP_FOLDER_NAME)
+            val tripDir = File(appDataDir, tripId.toString())
+//            val tripDir = File(appDataDir, "20260213170630")
             tripDir.mkdirs()
             tripDir
         }
